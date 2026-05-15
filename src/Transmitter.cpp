@@ -4,16 +4,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 #include <RF24.h>
-#include <nRF24L01.h>
 #include <Wire.h>
 
-// SCLK: 13, DIN: 11, D/C: A2, CS: A3, RST: A4
-// Software SPI, Doesnt work with multiple SPI slaves
-// Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, A2, A3, A4);
-
-// Hardware SPI: D/C A2, CE 8, RST A3
-Adafruit_PCD8544 display = Adafruit_PCD8544(A2, 8, A3); // Newer board
-// Adafruit_PCD8544 display = Adafruit_PCD8544(A2, A3, 6); // Older board 
+#include "MPU6050.h"
 
 #define JOY_X A0
 #define JOY_Y A1
@@ -24,15 +17,41 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(A2, 8, A3); // Newer board
 #define BTN_E 6
 #define BTN_F 7
 
-RF24 radio(9, 10); // CE, CSN
-// const uint64_t pipeOut = 0xE8E8F0F0E1LL;
-const uint64_t pipeOut = 0xA4D5C6F7E1LL;
+// Software SPI, Doesnt work with multiple SPI chips
+// Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, A2, A3, A4);
 
+// Hardware SPI: D/C A2, CE 8, RST A3
+Adafruit_PCD8544 display = Adafruit_PCD8544(A2, 8, A3);
+Adafruit_MPU6050 mpu;
+Adafruit_BMP085 bmp;
+QMC5883LCompass compass;
+
+RF24 radio(9, 10); // CE, CSN
+
+const uint64_t pipeOut = 0xA4D5C6F7E1LL;
 int dataToSend[7]; 
+
+int freeRam() {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+}
+
+void display_freeram() {
+  Serial.print(F("Free RAM: "));
+  Serial.println(freeRam());
+}
 
 
 void setup() {
   Serial.begin(9600);
+
+  initializeMPU6050(mpu);
+  mpu.setI2CBypass(true);
+
+  initializeQMC5883L(compass);
+  initializeBMP180(bmp);
+  
 
   display.begin();
   display.setContrast(55);
@@ -46,8 +65,8 @@ void setup() {
 
   if (!radio.begin()) {
     display.clearDisplay();
-    display.println("FAILED TO INITIALIZE RADIO!");
-    display.println("CHECK RECEIVER");
+    display.println(F("FAILED TO INITIALIZE RADIO!"));
+    display.println(F("CHECK RECEIVER"));
     display.display();
     while (1); 
   }
@@ -63,7 +82,7 @@ void setup() {
   pinMode(BTN_E, INPUT);
   pinMode(BTN_F, INPUT);
 
-  display.println("READY...");
+  display.println(F("READY..."));
   display.display();
 
   dataToSend[6] = -1;
@@ -78,26 +97,30 @@ void loop() {
 
   bool success = radio.write(&dataToSend, sizeof(dataToSend));
 
-  Serial.print("Link: "); 
-  Serial.println(success ? "OK" : "LOST");
+  // Serial.print("Link: "); 
+  // Serial.println(success ? "OK" : "LOST");
 
   display.clearDisplay();
   display.setCursor(0,0);
-  display.println("- DEBUG MODE -");
+  display.println(F("- DEBUG MODE -"));
   
-  display.print("X: "); display.println(dataToSend[0]);
-  display.print("Y: "); display.println(dataToSend[1]);
+  display.print(F("X: ")); display.println(dataToSend[0]);
+  display.print(F("Y: ")); display.println(dataToSend[1]);
   
-  display.print("Link: "); 
-  display.println(success ? "OK" : "LOST");
+  display.print(F("Link: ")); 
+  display.println(success ? F("OK") : F("LOST"));
 
-  display.print("Btns: ");
-  if(dataToSend[2] == LOW) display.print("A ");
-  if(dataToSend[3] == LOW) display.print("B ");
-  if(dataToSend[4] == LOW) display.print("C ");
-  if(dataToSend[5] == LOW) display.print("D ");
-  
+  display.print(F("Btns: "));
+  if(dataToSend[2] == LOW) display.print(F("A "));
+  if(dataToSend[3] == LOW) display.print(F("B "));
+  if(dataToSend[4] == LOW) display.print(F("C "));
+  if(dataToSend[5] == LOW) display.print(F("D "));
   display.display();
+
+  printBMP180(bmp);
+  printMPU6050(mpu);
+  printQMC5883L(compass);
+  display_freeram();
 
   delay(100); 
 }
