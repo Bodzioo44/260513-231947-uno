@@ -2,8 +2,9 @@
 
 #include <SPI.h>
 #include <RF24.h>
-#include <nRF24L01.h>
 
+#include "MPU6050.h"
+#include "UTILS.h"
 
 #define PWM_left 6
 #define PWM_right 5
@@ -28,6 +29,7 @@ void setup() {
   Serial.begin(9600);
 
   radio.begin();
+  radio.setPayloadSize(sizeof(dataToRead));
   radio.setDataRate(RF24_250KBPS);
   radio.openReadingPipe(0, pipeOut);
   radio.setPALevel(RF24_PA_MIN);
@@ -49,7 +51,7 @@ void setup() {
 }
 
 void loop() {
-  x = -1; y = -1, a = -1, b = -1, c= -1, d = -1;
+  x = -1; y = -1; a = -1; b = -1; c= -1; d = -1; dataToRead[6] = 0;
   if (radio.available()) {
     Serial.println("Successfull radio read");
     radio.read(&dataToRead, sizeof(dataToRead));
@@ -59,23 +61,25 @@ void loop() {
     c = dataToRead[4]; d = dataToRead[5];
     control_data = dataToRead[6];
 
-    if (control_data != -1) {
-      Serial.println("Control data missmatch!!! abandon ship!!!");
-      radio.powerDown(); 
-      delay(100); 
-      radio.powerUp(); 
-      delay(100);
+    Serial.println("Control data: " + String(control_data));
+    
 
-      radio.begin();
-      radio.setDataRate(RF24_250KBPS);
-      radio.openReadingPipe(0, pipeOut);
-      radio.setPALevel(RF24_PA_MIN);
-      radio.startListening();
+    if (control_data != (int)calculate_CRC8(dataToRead, 6)) {
+      Serial.println("Control data missmatch!!! abandon ship!!!");
+      // radio.powerDown(); 
+      // delay(100); 
+      // radio.powerUp(); 
+      // delay(100);
+
+      // radio.begin();
+      // radio.setDataRate(RF24_250KBPS);
+      // radio.openReadingPipe(0, pipeOut);
+      // radio.setPALevel(RF24_PA_MIN);
+      // radio.startListening();
 
       return;
     }
-
-    Serial.println("Data: ");
+    Serial.println("Control data check passed");
 
     Serial.print("Received: ");
     for (int i = 0; i < 7; i++) {

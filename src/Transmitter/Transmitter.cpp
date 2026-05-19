@@ -7,6 +7,7 @@
 #include <Wire.h>
 
 #include "MPU6050.h"
+#include "UTILS.h"
 
 #define JOY_X A0
 #define JOY_Y A1
@@ -28,20 +29,18 @@ QMC5883LCompass compass;
 
 RF24 radio(9, 10); // CE, CSN
 
+enum COLOR {
+  RED = 0b001,
+  GREEN = 0b010,
+  BLUE = 0b100,
+  WHITER = 0b111,
+  CYAN = 0b110,
+  MAGENTA = 0b101,
+  YELLOW = 0b011,
+};
+
 const uint64_t pipeOut = 0xA4D5C6F7E1LL;
 int dataToSend[7]; 
-
-int freeRam() {
-  extern int __heap_start, *__brkval;
-  int v;
-  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
-}
-
-void display_freeram() {
-  Serial.print(F("Free RAM: "));
-  Serial.println(freeRam());
-}
-
 
 void setup() {
   Serial.begin(9600);
@@ -70,6 +69,7 @@ void setup() {
     display.display();
     while (1); 
   }
+  radio.setPayloadSize(sizeof(dataToSend));
   radio.openWritingPipe(pipeOut);
   radio.setPALevel(RF24_PA_MIN);
   radio.setDataRate(RF24_250KBPS);
@@ -88,6 +88,7 @@ void setup() {
   dataToSend[6] = -1;
   
   delay(1000);
+
 }
 
 void loop() {
@@ -95,7 +96,17 @@ void loop() {
   dataToSend[2] = digitalRead(BTN_A); dataToSend[3] = digitalRead(BTN_B); 
   dataToSend[4] = digitalRead(BTN_C); dataToSend[5] = digitalRead(BTN_D);
 
+  uint8_t crc = calculate_CRC8(dataToSend, 6);
+  dataToSend[6] = (int)crc;
+  Serial.println("Calculated CRC: " + String(crc));
+
   bool success = radio.write(&dataToSend, sizeof(dataToSend));
+  Serial.print(F("Data sent: "));
+  for (int i = 0; i < 7; i++) {
+    Serial.print(dataToSend[i]);
+    Serial.print(", ");
+  }
+  Serial.println();
 
   // Serial.print("Link: "); 
   // Serial.println(success ? "OK" : "LOST");
@@ -117,10 +128,10 @@ void loop() {
   if(dataToSend[5] == LOW) display.print(F("D "));
   display.display();
 
-  printBMP180(bmp);
-  printMPU6050(mpu);
-  printQMC5883L(compass);
-  display_freeram();
+  // printBMP180(bmp);
+  // printMPU6050(mpu);
+  // printQMC5883L(compass);
+  Serial.println("Free RAM: " + String(freeRam()));
 
-  delay(100); 
+  delay(200); 
 }

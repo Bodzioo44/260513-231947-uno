@@ -6,8 +6,6 @@
 #include <Adafruit_BMP085.h>
 #include <QMC5883LCompass.h>
 
-
-
 void initializeMPU6050(Adafruit_MPU6050& mpu);
 void initializeBMP180(Adafruit_BMP085& bmp);
 void initializeQMC5883L(QMC5883LCompass& compass);
