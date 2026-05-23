@@ -4,88 +4,48 @@
 #include <QMC5883LCompass.h>
 
 void initializeQMC5883L(QMC5883LCompass& compass) {
-
-  
   compass.init();
-
-  // compass.setCalibrationOffsets(-336.00, -179.00, 47.00);
-  // compass.setCalibrationScales(1.05, 0.94, 1.02);
   compass.setCalibrationOffsets(105.00, 130.00, -677.00);
   compass.setCalibrationScales(1.01, 0.86, 1.18);
-
   Serial.println(F("QMC5883L Found!"));
-
 }
 
-void printQMC5883L(QMC5883LCompass& compass) {
+void LoadQMC5883L(QMC5883LCompass& compass, uint8_t* buffer) {
 
-  Serial.println(F("QMC5883L ------------"));
-
-	int x, y, z, a;
-	char myArray[3];
-	
 	compass.read();
-  
-	x = compass.getX();
-	y = compass.getY();
-	z = compass.getZ();
-	
-	a = compass.getAzimuth();
 
-	compass.getDirection(myArray, a);
-  
-	Serial.print(F("X: "));
-	Serial.print(x);
+  *buffer++ = compass.getX() >> 8;
+  *buffer++ = compass.getX() & 0xFF;
 
-	Serial.print(F(" Y: "));
-	Serial.print(y);
+  *buffer++ = compass.getY() >> 8;
+  *buffer++ = compass.getY() & 0xFF;
 
-	Serial.print(F(" Z: "));
-	Serial.print(z);
+  *buffer++ = compass.getZ() >> 8;
+  *buffer++ = compass.getZ() & 0xFF;
+	compass.getDirection((char*) buffer, compass.getAzimuth());
 
-	Serial.print(F(" Azimuth: "));
-	Serial.print(a);
-
-	Serial.print(F(" Direction: "));
-	Serial.print(myArray[0]);
-	Serial.print(myArray[1]);
-	Serial.println(myArray[2]);
-
-  Serial.println(F("QMC5883L ------------"));
-  Serial.println();
 }
-
 
 void initializeMPU6050(Adafruit_MPU6050& mpu) {
-  // Check if the MPU6050 sensor is detected
   if (!mpu.begin()) {
     Serial.println(F("Failed to find MPU6050 chip"));
-    while (1)
-      ;  // Halt if sensor not found
+    while (1);
   }
   Serial.println(F("MPU6050 Found!"));
 
-  // set accelerometer range to +-8G
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-
-  // set gyro range to +- 500 deg/s
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-
-  // set filter bandwidth to 21 Hz
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-
-//   Serial.println("");
   delay(100);
 }
 
-void printMPU6050(Adafruit_MPU6050& mpu) {
+void printMPU6050(Adafruit_MPU6050& mpu, uint8_t* buffer) {
 
-  // Serial.println();
-  // Serial.println("MPU6050 ------------");
-
-  /* Get new sensor events with the readings */
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
+
+  *buffer++ = 
+
 
   /* Print out the values */
   Serial.print(F("Acceleration X: "));
