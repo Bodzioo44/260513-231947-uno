@@ -6,136 +6,200 @@
 #include "MPU6050.h"
 #include "UTILS.h"
 
-#define PWM_left 6
-#define PWM_right 5
+#define PWM_left 5
 #define forward_left 4
-#define backward_left 3
-#define forward_right 7
-#define backward_right 8
+#define PWM_right 3
+#define forward_right 2
 
-// const uint64_t pipeOut = 0xE8E8F0F0E1LL;
-const uint64_t pipeOut = 0xA4D5C6F7E1LL;
-int x = 335;
-int y = 335;
-RF24 radio (9,10);
-int dataToRead[7];
+Adafruit_MPU6050 mpu;
+QMC5883LCompass compass;
+Adafruit_BMP085 bmp;
 
-int a,b,c,d;
-int oopsie_counter = 0;
-int delay_val = 10;
-int control_data = -1;
+RF24 radio(9, 10); // CE, CSN
+uint8_t buffer[32]; 
+const uint8_t addresses[] = { 0xD4, 0xF6 };
+
+int reply_data = 0;
+
 
 void setup() {
   Serial.begin(9600);
 
-  radio.begin();
-  radio.setPayloadSize(sizeof(dataToRead));
-  radio.setDataRate(RF24_250KBPS);
-  radio.openReadingPipe(0, pipeOut);
-  radio.setPALevel(RF24_PA_MIN);
-  radio.startListening();
-
   pinMode(PWM_left, OUTPUT);
   pinMode(PWM_right, OUTPUT);
   pinMode(forward_left, OUTPUT);
-  pinMode(backward_left, OUTPUT);
   pinMode(forward_right, OUTPUT);
-  pinMode(backward_right, OUTPUT);
+  pinMode(RCLK, OUTPUT);
+  pinMode(SCLK, OUTPUT);
+  pinMode(SER, OUTPUT);
 
-  analogWrite(PWM_left, 255);
-  analogWrite(PWM_right, 255);
-  //digitalWrite(forward_left, HIGH);
-  //digitalWrite(forward_right, HIGH);
-  //digitalWrite(backward_left, HIGH);
-  //digitalWrite(backward_right, HIGH);
+  analogWrite(PWM_left, 0);
+  analogWrite(PWM_right, 0);
+
+  initializeMPU6050(mpu);
+  mpu.setI2CBypass(true);
+  initializeQMC5883L(compass);
+  initializeBMP180(bmp);
+
+  LightLEDs(OFF, OFF);
+
+  if (!radio.begin()) {
+    Serial.println(F("FAILED TO INITIALIZE RADIO! CHECK HARDWARE!"));
+    while (1); 
+  }
+
+  radio.setPALevel(RF24_PA_MIN);
+  radio.enableDynamicPayloads();
+  radio.enableAckPayload();
+
+  radio.openReadingPipe(1, addresses[0]);
+
+  radio.startListening();
+
+  radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
 }
+
+
 
 void loop() {
-  x = -1; y = -1; a = -1; b = -1; c= -1; d = -1; dataToRead[6] = 0;
   if (radio.available()) {
-    Serial.println("Successfull radio read");
-    radio.read(&dataToRead, sizeof(dataToRead));
+    radio.read(&buffer, sizeof(buffer));
 
-    x = dataToRead[0]; y = dataToRead[1];
-    a = dataToRead[2]; b = dataToRead[3];
-    c = dataToRead[4]; d = dataToRead[5];
-    control_data = dataToRead[6];
+    DisplayData(buffer);
 
-    Serial.println("Control data: " + String(control_data));
+    reply_data++;
+    Serial.println("Sending ACK payload back to transmitter: " + String(reply_data));
+    radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
+
+  }
+
+  // if (i % 4 == 0) {
+  //   analogWrite(PWM_left, 0);
+  //   analogWrite(PWM_right, 255);
+  //   Serial.println("LEFT STOP, RIGHT GO");
+  // }
+  // else if (i % 4 == 1) {
+  //   analogWrite(PWM_left, 255);
+  //   analogWrite(PWM_right, 0);
+  //   Serial.println("LEFT GO, RIGHT STOP");
+
+  // }
+  // else if (i % 4 == 2) {
+  //   analogWrite(PWM_left, 255);
+  //   analogWrite(PWM_right, 255);
+  //   Serial.println("LEFT GO, RIGHT GO");
+
+  // }
+  //  else if (i % 4 == 3) {
+  //   analogWrite(PWM_left, 0);
+  //   analogWrite(PWM_right, 0);
+  //   Serial.println("LEFT STOP, RIGHT STOP");
+  // }
+
+  // digitalWrite(forward_left, HIGH);
+  // digitalWrite(forward_right, HIGH);
+
+  // delay(1000);
+
+  // digitalWrite(forward_left, LOW);
+  // digitalWrite(forward_right, LOW);
+
+  // delay(1000);
+
+  // // printMPU6050(mpu);
+  // // printQMC5883L(compass);
+  // // printBMP180(bmp);
+
+
+  // i++;
+}
+
+// void loop() {
+//   x = -1; y = -1; a = -1; b = -1; c= -1; d = -1; dataToRead[6] = 0;
+//   if (radio.available()) {
+//     Serial.println("Successfull radio read");
+//     radio.read(&dataToRead, sizeof(dataToRead));
+
+//     x = dataToRead[0]; y = dataToRead[1];
+//     a = dataToRead[2]; b = dataToRead[3];
+//     c = dataToRead[4]; d = dataToRead[5];
+//     control_data = dataToRead[6];
+
+//     Serial.println("Control data: " + String(control_data));
     
 
-    if (control_data != (int)calculate_CRC8(dataToRead, 6)) {
-      Serial.println("Control data missmatch!!! abandon ship!!!");
-      // radio.powerDown(); 
-      // delay(100); 
-      // radio.powerUp(); 
-      // delay(100);
+//     if (control_data != (int)calculate_CRC8(dataToRead, 6)) {
+//       Serial.println("Control data missmatch!!! abandon ship!!!");
+//       // radio.powerDown(); 
+//       // delay(100); 
+//       // radio.powerUp(); 
+//       // delay(100);
 
-      // radio.begin();
-      // radio.setDataRate(RF24_250KBPS);
-      // radio.openReadingPipe(0, pipeOut);
-      // radio.setPALevel(RF24_PA_MIN);
-      // radio.startListening();
+//       // radio.begin();
+//       // radio.setDataRate(RF24_250KBPS);
+//       // radio.openReadingPipe(0, pipeOut);
+//       // radio.setPALevel(RF24_PA_MIN);
+//       // radio.startListening();
 
-      return;
-    }
-    Serial.println("Control data check passed");
+//       return;
+//     }
+//     Serial.println("Control data check passed");
 
-    Serial.print("Received: ");
-    for (int i = 0; i < 7; i++) {
+//     Serial.print("Received: ");
+//     for (int i = 0; i < 7; i++) {
 
-      Serial.print(dataToRead[i]);
-      Serial.print(", ");
-    }
-    if (a == 0){
-      Serial.println("TURNING FRONT");
-      digitalWrite(forward_left, HIGH);
-      digitalWrite(forward_right, HIGH);
-      digitalWrite(backward_left, LOW);
-      digitalWrite(backward_right, LOW);
-    }
-    else if (c == 0){
-      Serial.println("TURNING BACK");
-      digitalWrite(forward_left, LOW);
-      digitalWrite(forward_right, LOW);
-      digitalWrite(backward_left, HIGH);
-      digitalWrite(backward_right, HIGH);
-    }
-    else if (d == 0){
-      Serial.println("TURNING LEFT");
-      digitalWrite(forward_left, LOW);
-      digitalWrite(forward_right, HIGH);
-      digitalWrite(backward_left, HIGH);
-      digitalWrite(backward_right, LOW);    
-    }
-    else if (b == 0){
-      Serial.println("TURNING RIGHT");
-      digitalWrite(forward_left, HIGH);
-      digitalWrite(forward_right, LOW);
-      digitalWrite(backward_left, LOW);
-      digitalWrite(backward_right, HIGH); 
-    }
-    else{
-      Serial.println("TURNING OFF");
-      digitalWrite(forward_left, LOW);
-      digitalWrite(forward_right, LOW);
-      digitalWrite(backward_left, LOW);
-      digitalWrite(backward_right, LOW); 
-    }
-    oopsie_counter = 0;
-  }
-  else {
-    oopsie_counter++;
-    if (oopsie_counter == 100) {
-      Serial.println("TURNING OFF");
-      Serial.println("critical failure, radio absent for 1000ms");
-      digitalWrite(forward_left, LOW);
-      digitalWrite(forward_right, LOW);
-      digitalWrite(backward_left, LOW);
-      digitalWrite(backward_right, LOW); 
-      oopsie_counter = 0;
+//       Serial.print(dataToRead[i]);
+//       Serial.print(", ");
+//     }
+//     if (a == 0){
+//       Serial.println("TURNING FRONT");
+//       digitalWrite(forward_left, HIGH);
+//       digitalWrite(forward_right, HIGH);
+//       digitalWrite(backward_left, LOW);
+//       digitalWrite(backward_right, LOW);
+//     }
+//     else if (c == 0){
+//       Serial.println("TURNING BACK");
+//       digitalWrite(forward_left, LOW);
+//       digitalWrite(forward_right, LOW);
+//       digitalWrite(backward_left, HIGH);
+//       digitalWrite(backward_right, HIGH);
+//     }
+//     else if (d == 0){
+//       Serial.println("TURNING LEFT");
+//       digitalWrite(forward_left, LOW);
+//       digitalWrite(forward_right, HIGH);
+//       digitalWrite(backward_left, HIGH);
+//       digitalWrite(backward_right, LOW);    
+//     }
+//     else if (b == 0){
+//       Serial.println("TURNING RIGHT");
+//       digitalWrite(forward_left, HIGH);
+//       digitalWrite(forward_right, LOW);
+//       digitalWrite(backward_left, LOW);
+//       digitalWrite(backward_right, HIGH); 
+//     }
+//     else{
+//       Serial.println("TURNING OFF");
+//       digitalWrite(forward_left, LOW);
+//       digitalWrite(forward_right, LOW);
+//       digitalWrite(backward_left, LOW);
+//       digitalWrite(backward_right, LOW); 
+//     }
+//     oopsie_counter = 0;
+//   }
+//   else {
+//     oopsie_counter++;
+//     if (oopsie_counter == 100) {
+//       Serial.println("TURNING OFF");
+//       Serial.println("critical failure, radio absent for 1000ms");
+//       digitalWrite(forward_left, LOW);
+//       digitalWrite(forward_right, LOW);
+//       digitalWrite(backward_left, LOW);
+//       digitalWrite(backward_right, LOW); 
+//       oopsie_counter = 0;
       
-    }
-    delay(delay_val);
-  }
-}
+//     }
+//     delay(delay_val);
+//   }
+// }
