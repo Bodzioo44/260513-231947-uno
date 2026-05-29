@@ -7,12 +7,14 @@
 #include "MPU6050.h"
 #include "UTILS.h"
 #include "Adafruit_Nokia5110.h"
+// #include "Gavin_Nokia5110.h"
 
-// Software SPI, Doesnt work with multiple SPI chips
+// Software SPI, Doesnt work with multiple SPI chips???
 // Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, A2, A3, A4);
 
 // Hardware SPI: D/C A2, CE 8, RST A3
-Adafruit_PCD8544 display = Adafruit_PCD8544(A2, 8, A3);
+Adafruit_PCD8544 display = Adafruit_PCD8544(DC, CE, RST);
+// NOKIA5110_TEXT display(RST, CE, DC);
 
 
 Adafruit_MPU6050 mpu;
@@ -23,7 +25,7 @@ RF24 radio(9, 10); // CE, CSN
 uint8_t buffer[32]; 
 const uint8_t addresses[] = { 0xD4, 0xF6 };
 
-int ackDataReceived;
+// uint8_t ackDataReceived[32];
 
 uint8_t data_id = 0;
 
@@ -61,12 +63,11 @@ void setup() {
 
   radio.stopListening(); 
   radio.openWritingPipe(addresses[0]);
-  // radio.openReadingPipe(1, addresses[1]);
+  radio.openReadingPipe(1, addresses[1]);
 
 
   // radio.setCRCLength(RF24_CRC_16);
   // radio.setDataRate(RF24_250KBPS);
-
 
   display.println(F("READY..."));
   display.display();
@@ -106,21 +107,45 @@ void loop() {
   }
 
   bool success = radio.write(buffer, sizeof(buffer));
+  
   if (success) {
-      // 4. Check if the receiver hitched data onto the ACK packet
-      if (radio.isAckPayloadAvailable()) {
-        radio.read(&ackDataReceived, sizeof(ackDataReceived));
+    if (radio.isAckPayloadAvailable()) {
+      radio.read(&buffer, sizeof(buffer));
         Serial.print("Success! Ack payload received: ");
-        Serial.println(ackDataReceived);
-      } else {
-        Serial.println("Success, but no ACK payload returned.");
-      }
-    } else {
-      Serial.println("Delivery failed (No ACK received at all).");
+        DisplayData(buffer);
     }
-
-  DisplayData(buffer);
+    else {
+      Serial.println("Success, but no ACK payload returned.");
+    }
+  } 
+  else {
+    Serial.println("Delivery failed (No ACK received at all).");
+  }
+  // if (success) {
+  //     if (radio.isAckPayloadAvailable()) {
+  //       radio.read(&ackDataReceived, sizeof(ackDataReceived));
+  //       Serial.print("Success! Ack payload received: ");
+  //       DisplayData(ackDataReceived);
+  //     } else {
+  //       Serial.println("Success, but no ACK payload returned.");
+  //     }
+  //   } else {
+  //     Serial.println("Delivery failed (No ACK received at all).");
+  //   }
   Serial.println("Free RAM: " + String(freeRam()));
+
+  switch (buffer[30]) {
+    case MPU6050_DATA:
+      DisplayPilotAccel(display, buffer);
+      break;
+    case BMP180_DATA:
+      DisplayPilotBarometer(display, buffer);
+      break;
+    case QMCL588L_DATA:
+      break;
+    case RADAR_DATA:
+      break;
+  }
 
   delay(200); 
 }

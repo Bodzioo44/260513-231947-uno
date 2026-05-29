@@ -2,6 +2,7 @@
 
 #include <SPI.h>
 #include <RF24.h>
+#include <Servo.h>
 
 #include "MPU6050.h"
 #include "UTILS.h"
@@ -10,6 +11,9 @@
 #define forward_left 4
 #define PWM_right 3
 #define forward_right 2
+
+
+Servo myservo; 
 
 Adafruit_MPU6050 mpu;
 QMC5883LCompass compass;
@@ -20,6 +24,8 @@ uint8_t buffer[32];
 const uint8_t addresses[] = { 0xD4, 0xF6 };
 
 int reply_data = 0;
+unsigned long last_radio_response;
+uint8_t radar_data[RADARSAMPLES];
 
 
 void setup() {
@@ -32,6 +38,10 @@ void setup() {
   pinMode(RCLK, OUTPUT);
   pinMode(SCLK, OUTPUT);
   pinMode(SER, OUTPUT);
+
+  myservo.attach(servoPin); 
+  pinMode(TrigPin, OUTPUT);
+  pinMode(EchoPin, INPUT);
 
   analogWrite(PWM_left, 0);
   analogWrite(PWM_right, 0);
@@ -59,8 +69,6 @@ void setup() {
   radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
 }
 
-
-
 void loop() {
   if (radio.available()) {
     radio.read(&buffer, sizeof(buffer));
@@ -68,9 +76,68 @@ void loop() {
     DisplayData(buffer);
 
     reply_data++;
-    Serial.println("Sending ACK payload back to transmitter: " + String(reply_data));
-    radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
+    Serial.println("Sending ACK payload back to transmitter: ");
+    radio.writeAckPayload(1, &buffer, sizeof(buffer));
+    
+    last_radio_response = millis();
+  }
 
+  LoadQMC5883L(compass, buffer);
+  LoadMPU6050(mpu, buffer + 9);
+  LoadBMP180(bmp, buffer + 15);
+
+  ButtonsData buttons = ReadButtonsData(buffer);
+
+  RadarScan(myservo, radar_data, RADARSAMPLES);
+  delay(5000);
+  // Forward
+  if (buttons.ButtonA) {
+    digitalWrite(forward_left, HIGH);
+    digitalWrite(forward_right, HIGH);
+
+    analogWrite(PWM_left, 255);
+    analogWrite(PWM_right, 255);
+    LightLEDs(BLUE, BLUE);
+  }
+  // Right
+  else if (buttons.ButtonB) {
+    digitalWrite(forward_left, HIGH);
+    digitalWrite(forward_right, LOW);
+
+    analogWrite(PWM_left, 255);
+    analogWrite(PWM_right, 255);
+    LightLEDs(MAGENTA, MAGENTA);
+  }
+  // BACK
+  else if (buttons.ButtonC) {
+    digitalWrite(forward_left, LOW);
+    digitalWrite(forward_right, LOW);
+
+    analogWrite(PWM_left, 255);
+    analogWrite(PWM_right, 255);
+    LightLEDs(RED, RED);
+  }
+  // LEFT
+  else if (buttons.ButtonD) {
+    digitalWrite(forward_left, LOW);
+    digitalWrite(forward_right, HIGH);
+
+    analogWrite(PWM_left, 255);
+    analogWrite(PWM_right, 255);
+
+    LightLEDs(GREEN, GREEN);
+  }
+  else {
+    analogWrite(PWM_left, 0);
+    analogWrite(PWM_right, 0);
+    // Serial.println("WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
+  }
+  // Connection lose protection
+  if (millis()-last_radio_response > 1000) {
+    analogWrite(PWM_left, 0);
+    analogWrite(PWM_right, 0);
+
+    LightLEDs(RED,BLUE);
   }
 
   // if (i % 4 == 0) {

@@ -37,7 +37,7 @@ void LightLEDs(COLOR LED1, COLOR LED2) {
 }
 
 void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID) {
-  memset(buffer, 0, sizeof(uint8_t) * 32); // Clear buffer before loading new data
+  memset(buffer, 0, sizeof(uint8_t) * 32);
   buffer[0] = (bool)!digitalRead(BTN_A); buffer[1] = (bool)!digitalRead(BTN_B);
   buffer[2] = (bool)!digitalRead(BTN_C); buffer[3] = (bool)!digitalRead(BTN_D);
   buffer[4] = (bool)!digitalRead(BTN_E); buffer[5] = (bool)!digitalRead(BTN_F);
@@ -50,6 +50,70 @@ void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID) {
   buffer[29] = BUTTONS_DATA;
   buffer[30] = data_ID;
   buffer[31] = calculate_CRC8(buffer, 31);
+}
+
+ButtonsData ReadButtonsData(uint8_t* buffer) {
+  ButtonsData data;
+  data.ButtonA = buffer[0];
+  data.ButtonB = buffer[1];
+  data.ButtonC = buffer[2];
+  data.ButtonD = buffer[3];
+  data.joystickX = buffer[7] << 8 | buffer[6];
+  data.joystickY = buffer[9] << 8 | buffer[8];
+  
+  return data;
+}
+
+
+void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples) {
+  int offset = -10;
+  int total_range = 120;
+  int bottom_range = (180-total_range)/2+offset;
+  int top_range = total_range+bottom_range;
+  int pos = bottom_range;
+  int delay_val = 500;
+  int pomiar;
+
+  int i = 0;
+
+  servo.write(bottom_range);
+
+  Serial.print("Skan od: "); Serial.println(bottom_range);
+  Serial.print("Skan do: "); Serial.println(top_range);
+  Serial.print("Skan co: "); Serial.println(total_range/samples);
+
+  for (pos = bottom_range; pos <= top_range; pos += total_range/samples) {
+    servo.write(pos); 
+    delay(delay_val);        
+    //Serial.println(pos);      
+    pomiar = GetDistance();
+    Serial.print("measurement: "); Serial.print(i); Serial.print(", value: "); Serial.println(pomiar);
+    radar_data[i] = pomiar;
+    i++;
+  }
+  // for (pos = top_range; pos >= bottom_range; pos -= 1) {
+  //   servo.write(pos);    
+  //   delay(delay_val);             
+  //   pomiar = GetDistance();
+  //   Serial.print("Pomiar: "); Serial.print(pomiar); Serial.print(", dla pozycji: "); Serial.println(pos);
+
+  // }
+
+  servo.write(total_range/2+bottom_range);
+
+}
+
+int GetDistance() {
+  digitalWrite(TrigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TrigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TrigPin, LOW);
+
+  int duration = pulseIn(EchoPin, HIGH);
+  int distance = (duration*.0343)/2;
+
+  return distance;
 }
 
 bool WasButtonPressed(int Button, bool& wasPressed) {

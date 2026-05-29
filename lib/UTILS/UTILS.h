@@ -3,7 +3,11 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#include <Servo.h>
 
+//////////////////////
+// TRANSMITTER DEFINES
+//////////////////////
 
 #define JOY_X A0
 #define JOY_Y A1
@@ -14,24 +18,19 @@
 #define BTN_E 6
 #define BTN_F 7
 
-
 #define SER 6
 #define RCLK 7
 #define SCLK 8
 
+///////////////////
+// RECEIVER DEFINES
+///////////////////
+#define servoPin A2
+#define EchoPin A1
+#define TrigPin A0
 
-// struct Sensors {
-//   Adafruit_MPU6050 mpu;
-//   QMC5883LCompass compass;
-//   Adafruit_BMP085 bmp;
+#define RADARSAMPLES 20
 
-//   Sensors() {
-//     initializeMPU6050(mpu);
-//     mpu.setI2CBypass(true);
-//     initializeQMC5883L(compass);
-//     initializeBMP180(bmp);
-//   }
-// };
 
 // 18 Bytes of sensor data
 // struct SensorData {
@@ -51,25 +50,55 @@
 
 // } __attribute__((packed));
 
-// // 10 Bytes of button data
-// struct ButtonsData {
-//   bool ButtonA;
-//   bool ButtonB;
-//   bool ButtonC;
-//   bool ButtonD;
-//   bool ButtonE;
-//   bool ButtonF;
-//   uint16_t joystickX;
-//   uint16_t joystickY;
-// } __attribute__((packed));
+// 10 Bytes of button data
+struct ButtonsData {
+  bool ButtonA;
+  bool ButtonB;
+  bool ButtonC;
+  bool ButtonD;
+  bool ButtonE;
+  bool ButtonF;
+  uint16_t joystickX;
+  uint16_t joystickY;
+} __attribute__((packed));
+
+// 28 Bytes of MPU data
+// Questionable, might need reduced precision later, or split payloads
+struct MPU6050Data {
+  float Ax;
+  float Ay;
+  float Az;
+  float Gx;
+  float Gy;
+  float Gz;
+  float Temp;
+} __attribute__((packed));
+
+// 16 Bytes of BMP data
+struct BMP180DATA {
+  float Temp;
+  int32_t Pressure;
+  float Altitude;
+  int32_t SeaLevelPressure; 
+} __attribute__((packed));
+
+// 11 Bytes of QMCL data
+struct QMCL588L_DATA {
+  int x;
+  int y;
+  int z;
+  int a;
+  char Direction[3];
+} __attribute__((packed));
 
 enum DATA_TYPE {
   BUTTONS_DATA = 0x01,
-  SENSOR_DATA = 0x02,
-  RADAR_DATA = 0x03
+  MPU6050_DATA = 0x02,
+  BMP180_DATA = 0x03,
+  QMCL588L_DATA = 0x04,
+  RADAR_DATA = 0x05
 };
 
-// TODO: assign right values
 enum COLOR {
   RED = 0b110,
   GREEN = 0b101,
@@ -81,16 +110,28 @@ enum COLOR {
   OFF = 0b111
 };
 
+
 int freeRam();
+
+void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples);
+int GetDistance();
+
+
 
 int8_t FloatToUint8(float& value);
 
 uint8_t calculate_CRC8(uint8_t* data, int size);
 
 void DisplayData(uint8_t* buffer);
+
 void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID);
+ButtonsData ReadButtonsData(uint8_t* buffer);
+
+
 void LightLEDs(COLOR LED1, COLOR LED2);
 
 bool WasButtonPressed(int Button, bool& wasPressed);
+
+
 
 #endif // UTILS_H
