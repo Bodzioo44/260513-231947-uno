@@ -44,7 +44,7 @@ void DisplayPilotAccel(Adafruit_PCD8544& display, uint8_t* buffer) {
 
   display.display();
 }
-
+  
 void DisplayPilotGyro(Adafruit_PCD8544& display, uint8_t* buffer) {
   display.clearDisplay();
   display.setCursor(0,0);
