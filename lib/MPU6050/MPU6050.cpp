@@ -28,44 +28,68 @@ void initializeBMP180(Adafruit_BMP085& bmp) {
   Serial.println(F("BMP180 Found!"));
 }
 
-void LoadQMC5883L(QMC5883LCompass& compass, uint8_t* buffer) {
-
-	compass.read();
-
-  *buffer++ = compass.getX() >> 8;
-  *buffer++ = compass.getX() & 0xFF;
-
-  *buffer++ = compass.getY() >> 8;
-  *buffer++ = compass.getY() & 0xFF;
-
-  *buffer++ = compass.getZ() >> 8;
-  *buffer++ = compass.getZ() & 0xFF;
-
-	compass.getDirection((char*) buffer, compass.getAzimuth());
-
-}
-
-void LoadMPU6050(Adafruit_MPU6050& mpu, uint8_t* buffer) {
+MPU6050Data ReadMPU6050(Adafruit_MPU6050& mpu) {
+  MPU6050Data data;
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  *buffer++ = FloatToUint8(a.acceleration.x);
-  *buffer++ = FloatToUint8(a.acceleration.y);
-  *buffer++ = FloatToUint8(a.acceleration.z);
+  data.Ax = a.acceleration.x;
+  data.Ay = a.acceleration.y;
+  data.Az = a.acceleration.z;
 
-  *buffer++ = FloatToUint8(g.gyro.x);
-  *buffer++ = FloatToUint8(g.gyro.y);
-  *buffer++ = FloatToUint8(g.gyro.z);
+  data.Gx = g.gyro.x;
+  data.Gy = g.gyro.y;
+  data.Gz = g.gyro.z;
+
+  data.Temp = temp.temperature;
+
+  return data;
 }
 
-void LoadBMP180(Adafruit_BMP085& bmp, uint8_t* buffer) {
-  float temperature = bmp.readTemperature();
-  uint16_t pressure = bmp.readPressure()/1000;
-
-  *buffer++ = FloatToUint8(temperature);
-  *buffer++ = (pressure >> 8) & 0xFF;
-  *buffer++ = pressure & 0xFF;
+void LoadMPU6050(MPU6050Data& data, uint8_t* buffer) {
+  memcpy(buffer, &data, sizeof(data));
 }
+
+// void LoadMPU6050(Adafruit_MPU6050& mpu, uint8_t* buffer) {
+//   sensors_event_t a, g, temp;
+//   mpu.getEvent(&a, &g, &temp);
+
+//   *buffer++ = FloatToUint8(a.acceleration.x);
+//   *buffer++ = FloatToUint8(a.acceleration.y);
+//   *buffer++ = FloatToUint8(a.acceleration.z);
+
+//   *buffer++ = FloatToUint8(g.gyro.x);
+//   *buffer++ = FloatToUint8(g.gyro.y);
+//   *buffer++ = FloatToUint8(g.gyro.z);
+// }
+
+// void LoadBMP180(Adafruit_BMP085& bmp, uint8_t* buffer) {
+//   float temperature = bmp.readTemperature();
+//   uint16_t pressure = bmp.readPressure()/1000;
+
+//   *buffer++ = FloatToUint8(temperature);
+//   *buffer++ = (pressure >> 8) & 0xFF;
+//   *buffer++ = pressure & 0xFF;
+// }
+
+// void LoadQMC5883L(QMC5883LCompass& compass, uint8_t* buffer) {
+
+// 	compass.read();
+
+//   *buffer++ = compass.getX() >> 8;
+//   *buffer++ = compass.getX() & 0xFF;
+
+//   *buffer++ = compass.getY() >> 8;
+//   *buffer++ = compass.getY() & 0xFF;
+
+//   *buffer++ = compass.getZ() >> 8;
+//   *buffer++ = compass.getZ() & 0xFF;
+
+// 	compass.getDirection((char*) buffer, compass.getAzimuth());
+
+// }
+
+
 
 
 

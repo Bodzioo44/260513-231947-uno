@@ -36,33 +36,82 @@ void LightLEDs(COLOR LED1, COLOR LED2) {
   digitalWrite(RCLK, HIGH); // push data
 }
 
-void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID) {
-  memset(buffer, 0, sizeof(uint8_t) * 32);
-  buffer[0] = (bool)!digitalRead(BTN_A); buffer[1] = (bool)!digitalRead(BTN_B);
-  buffer[2] = (bool)!digitalRead(BTN_C); buffer[3] = (bool)!digitalRead(BTN_D);
-  buffer[4] = (bool)!digitalRead(BTN_E); buffer[5] = (bool)!digitalRead(BTN_F);
-  uint16_t joystick = analogRead(JOY_X);
-  buffer[6] = joystick & 0xFF; // Lower byte of joystick
-  buffer[7] = (joystick >> 8) & 0xFF; // Upper byte of joystick
-  joystick = analogRead(JOY_Y);
-  buffer[8] = joystick & 0xFF; // Lower byte of joystickY
-  buffer[9] = (joystick >> 8) & 0xFF; // Upper byte of joystickY
-  buffer[29] = BUTTONS_DATA;
-  buffer[30] = data_ID;
-  buffer[31] = calculate_CRC8(buffer, 31);
+bool WasButtonPressed(int Button, bool& wasPressed) {
+  if (digitalRead(Button) == HIGH && wasPressed) {
+    wasPressed = false;
+    return true;
+  }
+  else if (digitalRead(Button) == LOW) {
+    wasPressed = true;
+  }
+  return false;
+}
+
+
+
+Header ReadHeader(uint8_t* buffer) {
+  Header header;
+  memcpy(&header, buffer, sizeof(header));
+  return header;
+}
+
+void LoadHeader(uint8_t* buffer, Header& header) {
+  memcpy(buffer, &header, sizeof(header));
+}
+
+void LoadCRC8(uint8_t* buffer_start, uint8_t* buffer) {
+  *buffer = calculate_CRC8(buffer_start, 31);
+}
+
+void LoadBufferWithButtonsData(uint8_t* buffer, Header& header) {
+  uint8_t* buff_start = buffer;
+  memset(buffer, 0, 32);
+  memcpy(buffer, &header, sizeof(header)); buffer += sizeof(header);
+
+  ButtonsData data;
+  data.ButtonA = (bool)!digitalRead(BTN_A); data.ButtonB = (bool)!digitalRead(BTN_B);
+  data.ButtonC = (bool)!digitalRead(BTN_C); data.ButtonD = (bool)!digitalRead(BTN_D);
+  data.ButtonE = (bool)!digitalRead(BTN_E); data.ButtonF = (bool)!digitalRead(BTN_F);
+  data.joystickX = analogRead(JOY_X); data.joystickY = analogRead(JOY_Y);
+  memcpy(buffer, &data, sizeof(data)); buffer += sizeof(data);
+  *buffer = calculate_CRC8(buff_start, 31);
 }
 
 ButtonsData ReadButtonsData(uint8_t* buffer) {
   ButtonsData data;
-  data.ButtonA = buffer[0];
-  data.ButtonB = buffer[1];
-  data.ButtonC = buffer[2];
-  data.ButtonD = buffer[3];
-  data.joystickX = buffer[7] << 8 | buffer[6];
-  data.joystickY = buffer[9] << 8 | buffer[8];
-  
+  memcpy(&data, buffer, sizeof(data));
   return data;
 }
+
+
+
+// void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID) {
+//   memset(buffer, 0, sizeof(uint8_t) * 32);
+//   buffer[0] = (bool)!digitalRead(BTN_A); buffer[1] = (bool)!digitalRead(BTN_B);
+//   buffer[2] = (bool)!digitalRead(BTN_C); buffer[3] = (bool)!digitalRead(BTN_D);
+//   buffer[4] = (bool)!digitalRead(BTN_E); buffer[5] = (bool)!digitalRead(BTN_F);
+//   uint16_t joystick = analogRead(JOY_X);
+//   buffer[6] = joystick & 0xFF; // Lower byte of joystick
+//   buffer[7] = (joystick >> 8) & 0xFF; // Upper byte of joystick
+//   joystick = analogRead(JOY_Y);
+//   buffer[8] = joystick & 0xFF; // Lower byte of joystickY
+//   buffer[9] = (joystick >> 8) & 0xFF; // Upper byte of joystickY
+//   buffer[29] = BUTTONS_DATA;
+//   buffer[30] = data_ID;
+//   buffer[31] = calculate_CRC8(buffer, 31);
+// }
+
+// ButtonsData ReadButtonsData(uint8_t* buffer) {
+//   ButtonsData data;
+//   data.ButtonA = buffer[0];
+//   data.ButtonB = buffer[1];
+//   data.ButtonC = buffer[2];
+//   data.ButtonD = buffer[3];
+//   data.joystickX = buffer[7] << 8 | buffer[6];
+//   data.joystickY = buffer[9] << 8 | buffer[8];
+  
+//   return data;
+// }
 
 
 void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples) {
@@ -116,16 +165,7 @@ int GetDistance() {
   return distance;
 }
 
-bool WasButtonPressed(int Button, bool& wasPressed) {
-  if (digitalRead(Button) == HIGH && wasPressed) {
-    wasPressed = false;
-    return true;
-  }
-  else if (digitalRead(Button) == LOW) {
-    wasPressed = true;
-  }
-  return false;
-}
+
 
 void DisplayData(uint8_t* buffer) {
   Serial.println(F("Buffer contents:"));

@@ -22,6 +22,7 @@ Adafruit_BMP085 bmp;
 RF24 radio(9, 10); // CE, CSN
 uint8_t buffer[32]; 
 const uint8_t addresses[] = { 0xD4, 0xF6 };
+ButtonsData buttons;
 
 int reply_data = 0;
 unsigned long last_radio_response;
@@ -67,6 +68,7 @@ void setup() {
   radio.startListening();
 
   radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
+  
 }
 
 void loop() {
@@ -76,20 +78,31 @@ void loop() {
     DisplayData(buffer);
 
     reply_data++;
-    Serial.println("Sending ACK payload back to transmitter: ");
+    Serial.println("Sending ACK payload back to transmitter.");
     radio.writeAckPayload(1, &buffer, sizeof(buffer));
     
     last_radio_response = millis();
   }
 
-  LoadQMC5883L(compass, buffer);
-  LoadMPU6050(mpu, buffer + 9);
-  LoadBMP180(bmp, buffer + 15);
+  Header header = ReadHeader(buffer);
+  if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
+    buttons = ReadButtonsData(buffer+sizeof(header));
+  }
 
-  ButtonsData buttons = ReadButtonsData(buffer);
+  // Serial.print("Buttons: "); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA);
 
-  RadarScan(myservo, radar_data, RADARSAMPLES);
-  delay(5000);
+  header.DataType = DATA_TYPE::MPU6050_DATA_RX;
+  header.RequestedData = DATA_TYPE::BUTTONS_DATA_TX;
+
+  LoadHeader(buffer, header);
+
+  MPU6050Data data = ReadMPU6050(mpu);
+  LoadMPU6050(data, buffer+sizeof(header));
+
+
+  // RadarScan(myservo, radar_data, RADARSAMPLES);
+  // delay(5000);
+
   // Forward
   if (buttons.ButtonA) {
     digitalWrite(forward_left, HIGH);
@@ -130,6 +143,7 @@ void loop() {
   else {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
+    LightLEDs(OFF, OFF);
     // Serial.println("WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
   }
   // Connection lose protection

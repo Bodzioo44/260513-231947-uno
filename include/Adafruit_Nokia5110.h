@@ -4,6 +4,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 
+#include "UTILS.h"
+
 // #define DC A2
 // #define CE 8
 // #define RST A3
@@ -16,10 +18,16 @@
 // Blue Nokia5110 doesnt work with 4Mhz, changing Adafruit Library Hardware SPI Speed is required.
 void InitScreen(Adafruit_PCD8544& display);
 
-void DisplayPilotGyro(Adafruit_PCD8544& display, uint8_t* buffer);
-void DisplayPilotAccel(Adafruit_PCD8544& display, uint8_t* buffer);
-void DisplayPilotButtons(Adafruit_PCD8544& display, uint8_t* buffer);
-void DisplayPilotBarometer(Adafruit_PCD8544& display, uint8_t* buffer);
+// void DisplayPilotGyro(Adafruit_PCD8544& display, uint8_t* buffer);
+// void DisplayPilotAccel(Adafruit_PCD8544& display, uint8_t* buffer);
+// void DisplayPilotButtons(Adafruit_PCD8544& display, uint8_t* buffer);
+// void DisplayPilotBarometer(Adafruit_PCD8544& display, uint8_t* buffer);
+
+void DisplayButtons(Adafruit_PCD8544& display, ButtonsData& data);
+void DisplayGyro(Adafruit_PCD8544& display, MPU6050Data& data, Header& header);
+void DisplayAccel(Adafruit_PCD8544& display, MPU6050Data& data, Header& header);
+void DisplayBaro(Adafruit_PCD8544& display, BMP180Data& data, Header& header);
+void DisplayMag(Adafruit_PCD8544& display, QMCL588LData& data, Header& header);
 
 
 #endif // ADAFRUIT_Nokia5110_H

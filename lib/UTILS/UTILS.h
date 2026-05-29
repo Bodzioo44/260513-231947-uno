@@ -32,6 +32,9 @@
 #define RADARSAMPLES 20
 
 
+
+
+
 // 18 Bytes of sensor data
 // struct SensorData {
 //   uint16_t magX; // 2
@@ -49,6 +52,36 @@
 
 
 // } __attribute__((packed));
+
+
+enum class DATA_TYPE : uint8_t {
+  BUTTONS_DATA_TX,
+  MPU6050_DATA_TX,
+  BMP180_DATA_TX,
+  QMCL588L_DATA_TX,
+
+  MPU6050_DATA_RX,
+  BMP180_DATA_RX,
+  QMCL588L_DATA_RX,
+  RADAR_DATA_RX
+};
+
+enum COLOR {
+  RED = 0b110,
+  GREEN = 0b101,
+  BLUE = 0b011,
+  WHITER = 0b000,
+  CYAN = 0b001,
+  MAGENTA = 0b010,
+  YELLOW = 0b100,
+  OFF = 0b111
+};
+
+struct Header {
+  DATA_TYPE DataType; 
+  DATA_TYPE RequestedData;
+  uint8_t TransmissionID;
+} __attribute__((packed));
 
 // 10 Bytes of button data
 struct ButtonsData {
@@ -75,7 +108,7 @@ struct MPU6050Data {
 } __attribute__((packed));
 
 // 16 Bytes of BMP data
-struct BMP180DATA {
+struct BMP180Data {
   float Temp;
   int32_t Pressure;
   float Altitude;
@@ -83,7 +116,7 @@ struct BMP180DATA {
 } __attribute__((packed));
 
 // 11 Bytes of QMCL data
-struct QMCL588L_DATA {
+struct QMCL588LData {
   int x;
   int y;
   int z;
@@ -91,46 +124,30 @@ struct QMCL588L_DATA {
   char Direction[3];
 } __attribute__((packed));
 
-enum DATA_TYPE {
-  BUTTONS_DATA = 0x01,
-  MPU6050_DATA = 0x02,
-  BMP180_DATA = 0x03,
-  QMCL588L_DATA = 0x04,
-  RADAR_DATA = 0x05
-};
-
-enum COLOR {
-  RED = 0b110,
-  GREEN = 0b101,
-  BLUE = 0b011,
-  WHITER = 0b000,
-  CYAN = 0b001,
-  MAGENTA = 0b010,
-  YELLOW = 0b100,
-  OFF = 0b111
-};
-
-
 int freeRam();
+uint8_t calculate_CRC8(uint8_t* data, int size);
+
+void LightLEDs(COLOR LED1, COLOR LED2);
+bool WasButtonPressed(int Button, bool& wasPressed);
+
+void DisplayData(uint8_t* buffer);
+
+
 
 void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples);
 int GetDistance();
 
 
 
-int8_t FloatToUint8(float& value);
-
-uint8_t calculate_CRC8(uint8_t* data, int size);
-
-void DisplayData(uint8_t* buffer);
-
-void LoadBufferWithButtonsData(uint8_t* buffer, uint8_t& data_ID);
+void LoadBufferWithButtonsData(uint8_t* buffer, Header& header);
 ButtonsData ReadButtonsData(uint8_t* buffer);
+Header ReadHeader(uint8_t* buffer);
+void LoadHeader(uint8_t* buffer, Header& header);
+
+// int8_t FloatToUint8(float& value);
 
 
-void LightLEDs(COLOR LED1, COLOR LED2);
 
-bool WasButtonPressed(int Button, bool& wasPressed);
 
 
 

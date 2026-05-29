@@ -27,7 +27,7 @@ const uint8_t addresses[] = { 0xD4, 0xF6 };
 
 // uint8_t ackDataReceived[32];
 
-uint8_t data_id = 0;
+uint8_t transmissionID = 0;
 
 bool BTN_E_Pressed = false;
 bool BTN_F_Pressed = false;
@@ -81,29 +81,34 @@ void loop() {
     E_Value = (E_Value + 1) % 4; // Cycle through 4 states
     Serial.println("BTN_E pressed! New E_Value: " + String(E_Value));
   }
-
+  Header header;
   switch (E_Value) {
     case 0:
-      LoadBufferWithButtonsData(buffer, ++data_id);
-      DisplayPilotButtons(display, buffer);
+      header.DataType = DATA_TYPE::BUTTONS_DATA_TX;
+      header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
+      header.TransmissionID = transmissionID;
+      Serial.println("IM HGERE GOD DAMNIT");
+      LoadBufferWithButtonsData(buffer, header);
+      ButtonsData data = ReadButtonsData(buffer+sizeof(header));
+      DisplayButtons(display, data);
       break;
-    case 1:
-      LoadQMC5883L(compass, buffer);
-      LoadMPU6050(mpu, buffer + 9);
-      DisplayPilotAccel(display, buffer);
-      break;
-    case 2:
-      LoadQMC5883L(compass, buffer);
-      LoadMPU6050(mpu, buffer + 9);
-      DisplayPilotGyro(display, buffer);
-      break;
-    case 3:
-      LoadQMC5883L(compass, buffer);
-      LoadMPU6050(mpu, buffer + 9);
-      LoadBMP180(bmp, buffer + 15);
-      printBMP180(bmp);
-      DisplayPilotBarometer(display, buffer);
-      break;
+    // case 1:
+    //   LoadQMC5883L(compass, buffer);
+    //   LoadMPU6050(mpu, buffer + 9);
+    //   DisplayPilotAccel(display, buffer);
+    //   break;
+    // case 2:
+    //   LoadQMC5883L(compass, buffer);
+    //   LoadMPU6050(mpu, buffer + 9);
+    //   DisplayPilotGyro(display, buffer);
+    //   break;
+    // case 3:
+    //   LoadQMC5883L(compass, buffer);
+    //   LoadMPU6050(mpu, buffer + 9);
+    //   LoadBMP180(bmp, buffer + 15);
+    //   printBMP180(bmp);
+    //   DisplayPilotBarometer(display, buffer);
+    //   break;
   }
 
   bool success = radio.write(buffer, sizeof(buffer));
@@ -134,18 +139,25 @@ void loop() {
   //   }
   Serial.println("Free RAM: " + String(freeRam()));
 
-  switch (buffer[30]) {
-    case MPU6050_DATA:
-      DisplayPilotAccel(display, buffer);
-      break;
-    case BMP180_DATA:
-      DisplayPilotBarometer(display, buffer);
-      break;
-    case QMCL588L_DATA:
-      break;
-    case RADAR_DATA:
-      break;
-  }
+  // header = ReadHeader(buffer);
+  // MPU6050Data data;
+  // memcpy(&data, buffer+sizeof(header), sizeof(data));
+  // DisplayAccel(display, data, header);
+  
+
+  // switch (buffer[30]) {
+  //   case MPU6050_DATA:
+  //     DisplayPilotAccel(display, buffer);
+  //     break;
+  //   case BMP180_DATA:
+  //     DisplayPilotBarometer(display, buffer);
+  //     break;
+  //   case QMCL588L_DATA:
+  //     break;
+  //   case RADAR_DATA:
+  //     break;
+  // }
 
   delay(200); 
+  transmissionID++;
 }
