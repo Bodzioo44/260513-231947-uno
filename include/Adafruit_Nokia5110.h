@@ -18,11 +18,6 @@
 // Blue Nokia5110 doesnt work with 4Mhz, changing Adafruit Library Hardware SPI Speed is required.
 void InitScreen(Adafruit_PCD8544& display);
 
-// void DisplayPilotGyro(Adafruit_PCD8544& display, uint8_t* buffer);
-// void DisplayPilotAccel(Adafruit_PCD8544& display, uint8_t* buffer);
-// void DisplayPilotButtons(Adafruit_PCD8544& display, uint8_t* buffer);
-// void DisplayPilotBarometer(Adafruit_PCD8544& display, uint8_t* buffer);
-
 void DisplayButtons(Adafruit_PCD8544& display, ButtonsData& data);
 void DisplayGyro(Adafruit_PCD8544& display, MPU6050Data& data, Header& header);
 void DisplayAccel(Adafruit_PCD8544& display, MPU6050Data& data, Header& header);

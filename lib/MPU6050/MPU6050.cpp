@@ -1,11 +1,8 @@
 #include "MPU6050.h"
 
-void initializeQMC5883L(QMC5883LCompass& compass) {
-  compass.init();
-  compass.setCalibrationOffsets(105.00, 130.00, -677.00);
-  compass.setCalibrationScales(1.01, 0.86, 1.18);
-  Serial.println(F("QMC5883L Found!"));
-}
+//////////
+// MPU6050
+//////////
 
 void initializeMPU6050(Adafruit_MPU6050& mpu) {
   if (!mpu.begin()) {
@@ -18,14 +15,6 @@ void initializeMPU6050(Adafruit_MPU6050& mpu) {
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
   delay(100);
-}
-
-void initializeBMP180(Adafruit_BMP085& bmp) {
-  if (!bmp.begin()) {
-    Serial.println(F("Could not find a valid BMP180 sensor, check wiring!"));
-    while (1);
-  }
-  Serial.println(F("BMP180 Found!"));
 }
 
 MPU6050Data ReadMPU6050(Adafruit_MPU6050& mpu) {
@@ -46,51 +35,79 @@ MPU6050Data ReadMPU6050(Adafruit_MPU6050& mpu) {
   return data;
 }
 
+MPU6050Data ReadMPU6050FromBuffer(uint8_t* buffer) {
+  MPU6050Data data;
+  memcpy(&data, buffer, sizeof(data));
+}
+
 void LoadMPU6050(MPU6050Data& data, uint8_t* buffer) {
   memcpy(buffer, &data, sizeof(data));
 }
 
-// void LoadMPU6050(Adafruit_MPU6050& mpu, uint8_t* buffer) {
-//   sensors_event_t a, g, temp;
-//   mpu.getEvent(&a, &g, &temp);
+/////////
+// BMP180
+/////////
 
-//   *buffer++ = FloatToUint8(a.acceleration.x);
-//   *buffer++ = FloatToUint8(a.acceleration.y);
-//   *buffer++ = FloatToUint8(a.acceleration.z);
+void initializeBMP180(Adafruit_BMP085& bmp) {
+  if (!bmp.begin()) {
+    Serial.println(F("Could not find a valid BMP180 sensor, check wiring!"));
+    while (1);
+  }
+  Serial.println(F("BMP180 Found!"));
+}
 
-//   *buffer++ = FloatToUint8(g.gyro.x);
-//   *buffer++ = FloatToUint8(g.gyro.y);
-//   *buffer++ = FloatToUint8(g.gyro.z);
-// }
+BMP180Data ReadBMP180(Adafruit_BMP085& bmp) {
+  BMP180Data data;
+  data.Temp = bmp.readRawTemperature();
+  data.Pressure = bmp.readPressure();
+  data.Altitude = bmp.readAltitude();
+  data.SeaLevelPressure = bmp.readSealevelPressure();
 
-// void LoadBMP180(Adafruit_BMP085& bmp, uint8_t* buffer) {
-//   float temperature = bmp.readTemperature();
-//   uint16_t pressure = bmp.readPressure()/1000;
+  return data;
+}
 
-//   *buffer++ = FloatToUint8(temperature);
-//   *buffer++ = (pressure >> 8) & 0xFF;
-//   *buffer++ = pressure & 0xFF;
-// }
+BMP180Data ReadBMP180FromBuffer(uint8_t* buffer) {
+  BMP180Data data;
+  memcpy(&data, buffer, sizeof(data));
+  return data;
+}
 
-// void LoadQMC5883L(QMC5883LCompass& compass, uint8_t* buffer) {
+void LoadBMP180(BMP180Data& data, uint8_t* buffer) {
+  memcpy(buffer, &data, sizeof(data));
+}
 
-// 	compass.read();
+///////////
+// QMC5883L
+///////////
 
-//   *buffer++ = compass.getX() >> 8;
-//   *buffer++ = compass.getX() & 0xFF;
+void initializeQMC5883L(QMC5883LCompass& compass) {
+  compass.init();
+  compass.setCalibrationOffsets(105.00, 130.00, -677.00);
+  compass.setCalibrationScales(1.01, 0.86, 1.18);
+  Serial.println(F("QMC5883L Found!"));
+}
 
-//   *buffer++ = compass.getY() >> 8;
-//   *buffer++ = compass.getY() & 0xFF;
+QMCL588LData ReadQMCL5883L(QMC5883LCompass& compass) {
+  QMCL588LData data;
+  data.x = compass.getX();
+  data.y = compass.getY();
+  data.z = compass.getZ();
 
-//   *buffer++ = compass.getZ() >> 8;
-//   *buffer++ = compass.getZ() & 0xFF;
+  data.a = compass.getAzimuth();
+  compass.getDirection(data.Direction, data.a);
 
-// 	compass.getDirection((char*) buffer, compass.getAzimuth());
+  return data;
+}
 
-// }
+QMCL588LData ReadQMCL5883LFromBuffer(uint8_t* buffer) {
+  QMCL588LData data;
+  memcpy(&data, buffer, sizeof(data));
+  return data;
+}
 
-
-
+void LoadQMCL5883L(QMCL588LData& data, uint8_t* buffer) {
+  memcpy(buffer, &data, sizeof(data));
+}
 
 
 void printBMP180(Adafruit_BMP085& bmp) {

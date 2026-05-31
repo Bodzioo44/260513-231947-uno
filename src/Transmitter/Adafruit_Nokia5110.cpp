@@ -8,7 +8,6 @@ void InitScreen(Adafruit_PCD8544& display) {
   display.setTextColor(BLACK);
 }
 
-
 void DisplayButtons(Adafruit_PCD8544& display, ButtonsData& data) {
   display.clearDisplay();
   display.setCursor(0,0);
@@ -32,7 +31,7 @@ void DisplayGyro(Adafruit_PCD8544& display, MPU6050Data& data, Header& header) {
   display.clearDisplay();
   display.setCursor(0,0);
 
-  // display.print((header.DataType = DATA_TYPE::MPU6050_DATA_TX) ? F("TX") : F("RX")); 
+  display.print(((uint8_t)header.DataType <= 4) ? F("TX") : F("RX")); 
   display.println(F(" GYRO (deg/s)"));
 
   display.print(F("X: ")); display.println(data.Gx, 1);
@@ -47,6 +46,7 @@ void DisplayAccel(Adafruit_PCD8544& display, MPU6050Data& data, Header& header) 
   display.setCursor(0,0);
 
   // display.print((header.DataType = DATA_TYPE::MPU6050_DATA_TX) ? F("TX") : F("RX")); 
+  display.print(((int)header.DataType <= 4) ? F("TX") : F("RX")); 
   display.println(F(" ACCEL (m/s^2)"));
 
   display.print(F("X: ")); display.println(data.Ax, 1);
@@ -61,6 +61,7 @@ void DisplayBaro(Adafruit_PCD8544& display, BMP180Data& data, Header& header) {
   display.setCursor(0,0);
 
   // display.print((header.DataType = DATA_TYPE::BMP180_DATA_TX) ? F("TX") : F("RX")); 
+  display.print(((int)header.DataType <= 4) ? F("TX") : F("RX"));  
   display.println(F(" BAROMETER"));
 
   display.print(F("Temp: ")); display.print(data.Temp, 2); display.println(F(" C"));
@@ -76,6 +77,7 @@ void DisplayMag(Adafruit_PCD8544& display, QMCL588LData& data, Header& header) {
   display.setCursor(0,0);
 
   // display.print((header.DataType = DATA_TYPE::QMCL588L_DATA_TX) ? F("TX") : F("RX")); 
+  display.print(((int)header.DataType <= 4) ? F("TX") : F("RX"));   
   display.println(F(" MAGNETOMETR"));
 
   display.print(F("X: ")); display.println(data.x); // display.println(F(" C"));

@@ -33,27 +33,6 @@
 
 
 
-
-
-// 18 Bytes of sensor data
-// struct SensorData {
-//   uint16_t magX; // 2
-//   uint16_t magY; // 2
-//   uint16_t magZ; // 2
-//   char direction[3]; // 3
-//   uint8_t accelX; // 1
-//   uint8_t accelY; // 1
-//   uint8_t accelZ; // 1
-//   uint8_t gyroX; // 1
-//   uint8_t gyroY; // 1
-//   uint8_t gyroZ; // 1
-//   uint8_t temperature; // 1
-//   uint16_t pressure; // 2
-
-
-// } __attribute__((packed));
-
-
 enum class DATA_TYPE : uint8_t {
   BUTTONS_DATA_TX,
   MPU6050_DATA_TX,
@@ -63,7 +42,9 @@ enum class DATA_TYPE : uint8_t {
   MPU6050_DATA_RX,
   BMP180_DATA_RX,
   QMCL588L_DATA_RX,
-  RADAR_DATA_RX
+  RADAR_DATA_RX,
+
+  NONE
 };
 
 enum COLOR {
@@ -139,13 +120,13 @@ int GetDistance();
 
 
 
-void LoadBufferWithButtonsData(uint8_t* buffer, Header& header);
-ButtonsData ReadButtonsData(uint8_t* buffer);
+void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data);
+ButtonsData ReadButtons();
+ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer);
+
+
 Header ReadHeader(uint8_t* buffer);
 void LoadHeader(uint8_t* buffer, Header& header);
-
-// int8_t FloatToUint8(float& value);
-
 
 
 

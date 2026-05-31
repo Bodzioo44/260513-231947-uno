@@ -67,41 +67,51 @@ void setup() {
 
   radio.startListening();
 
-  radio.writeAckPayload(1, &reply_data, sizeof(reply_data));
+  radio.writeAckPayload(1, &buffer, sizeof(buffer));
   
 }
 
 void loop() {
   if (radio.available()) {
     radio.read(&buffer, sizeof(buffer));
-
+    Serial.println(F("Data received from TX"));
     DisplayData(buffer);
-
-    reply_data++;
-    Serial.println("Sending ACK payload back to transmitter.");
-    radio.writeAckPayload(1, &buffer, sizeof(buffer));
-    
     last_radio_response = millis();
   }
 
+  // TODO: Get rid of the check? kinda useless since we only send buttons to RX
   Header header = ReadHeader(buffer);
   if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
     buttons = ReadButtonsData(buffer+sizeof(header));
   }
 
-  // Serial.print("Buttons: "); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA); Serial.print(buttons.ButtonA);
+  switch (header.RequestedData) {
+    case DATA_TYPE::MPU6050_DATA_RX: {
+      header.DataType = DATA_TYPE::MPU6050_DATA_RX;
+      MPU6050Data data = ReadMPU6050(mpu);
+      LoadMPU6050(data, buffer+3);
+      break;
+    }
+    case DATA_TYPE::BMP180_DATA_RX: {
+      header.DataType = DATA_TYPE::BMP180_DATA_RX;
+      BMP180Data data = ReadBMP180(bmp);
+      LoadBMP180(data, buffer+3);
+      break;
+    }
+    case DATA_TYPE::QMCL588L_DATA_RX: {
+      header.DataType = DATA_TYPE::QMCL588L_DATA_RX;
+      QMCL588LData data = ReadQMCL5883L(compass);
+      LoadQMCL588L(data, buffer+3);
+      break;
+    }
+  }
 
-  header.DataType = DATA_TYPE::MPU6050_DATA_RX;
   header.RequestedData = DATA_TYPE::BUTTONS_DATA_TX;
-
   LoadHeader(buffer, header);
+  buffer[31] = calculate_CRC8(buffer, sizeof(buffer)-1);
 
-  MPU6050Data data = ReadMPU6050(mpu);
-  LoadMPU6050(data, buffer+sizeof(header));
-
-
-  // RadarScan(myservo, radar_data, RADARSAMPLES);
-  // delay(5000);
+  radio.writeAckPayload(1, &buffer, sizeof(buffer));
+    
 
   // Forward
   if (buttons.ButtonA) {
@@ -110,7 +120,7 @@ void loop() {
 
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
-    LightLEDs(BLUE, BLUE);
+    LightLEDs(GREEN, GREEN);
   }
   // Right
   else if (buttons.ButtonB) {
@@ -119,7 +129,7 @@ void loop() {
 
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
-    LightLEDs(MAGENTA, MAGENTA);
+    LightLEDs(YELLOW, YELLOW);
   }
   // BACK
   else if (buttons.ButtonC) {
@@ -138,149 +148,19 @@ void loop() {
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
 
-    LightLEDs(GREEN, GREEN);
+    LightLEDs(BLUE, BLUE);
   }
   else {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
     LightLEDs(OFF, OFF);
-    // Serial.println("WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
   }
   // Connection lose protection
+  // TODO: add additional check from unsigned long overflow.
   if (millis()-last_radio_response > 1000) {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
 
     LightLEDs(RED,BLUE);
   }
-
-  // if (i % 4 == 0) {
-  //   analogWrite(PWM_left, 0);
-  //   analogWrite(PWM_right, 255);
-  //   Serial.println("LEFT STOP, RIGHT GO");
-  // }
-  // else if (i % 4 == 1) {
-  //   analogWrite(PWM_left, 255);
-  //   analogWrite(PWM_right, 0);
-  //   Serial.println("LEFT GO, RIGHT STOP");
-
-  // }
-  // else if (i % 4 == 2) {
-  //   analogWrite(PWM_left, 255);
-  //   analogWrite(PWM_right, 255);
-  //   Serial.println("LEFT GO, RIGHT GO");
-
-  // }
-  //  else if (i % 4 == 3) {
-  //   analogWrite(PWM_left, 0);
-  //   analogWrite(PWM_right, 0);
-  //   Serial.println("LEFT STOP, RIGHT STOP");
-  // }
-
-  // digitalWrite(forward_left, HIGH);
-  // digitalWrite(forward_right, HIGH);
-
-  // delay(1000);
-
-  // digitalWrite(forward_left, LOW);
-  // digitalWrite(forward_right, LOW);
-
-  // delay(1000);
-
-  // // printMPU6050(mpu);
-  // // printQMC5883L(compass);
-  // // printBMP180(bmp);
-
-
-  // i++;
 }
-
-// void loop() {
-//   x = -1; y = -1; a = -1; b = -1; c= -1; d = -1; dataToRead[6] = 0;
-//   if (radio.available()) {
-//     Serial.println("Successfull radio read");
-//     radio.read(&dataToRead, sizeof(dataToRead));
-
-//     x = dataToRead[0]; y = dataToRead[1];
-//     a = dataToRead[2]; b = dataToRead[3];
-//     c = dataToRead[4]; d = dataToRead[5];
-//     control_data = dataToRead[6];
-
-//     Serial.println("Control data: " + String(control_data));
-    
-
-//     if (control_data != (int)calculate_CRC8(dataToRead, 6)) {
-//       Serial.println("Control data missmatch!!! abandon ship!!!");
-//       // radio.powerDown(); 
-//       // delay(100); 
-//       // radio.powerUp(); 
-//       // delay(100);
-
-//       // radio.begin();
-//       // radio.setDataRate(RF24_250KBPS);
-//       // radio.openReadingPipe(0, pipeOut);
-//       // radio.setPALevel(RF24_PA_MIN);
-//       // radio.startListening();
-
-//       return;
-//     }
-//     Serial.println("Control data check passed");
-
-//     Serial.print("Received: ");
-//     for (int i = 0; i < 7; i++) {
-
-//       Serial.print(dataToRead[i]);
-//       Serial.print(", ");
-//     }
-//     if (a == 0){
-//       Serial.println("TURNING FRONT");
-//       digitalWrite(forward_left, HIGH);
-//       digitalWrite(forward_right, HIGH);
-//       digitalWrite(backward_left, LOW);
-//       digitalWrite(backward_right, LOW);
-//     }
-//     else if (c == 0){
-//       Serial.println("TURNING BACK");
-//       digitalWrite(forward_left, LOW);
-//       digitalWrite(forward_right, LOW);
-//       digitalWrite(backward_left, HIGH);
-//       digitalWrite(backward_right, HIGH);
-//     }
-//     else if (d == 0){
-//       Serial.println("TURNING LEFT");
-//       digitalWrite(forward_left, LOW);
-//       digitalWrite(forward_right, HIGH);
-//       digitalWrite(backward_left, HIGH);
-//       digitalWrite(backward_right, LOW);    
-//     }
-//     else if (b == 0){
-//       Serial.println("TURNING RIGHT");
-//       digitalWrite(forward_left, HIGH);
-//       digitalWrite(forward_right, LOW);
-//       digitalWrite(backward_left, LOW);
-//       digitalWrite(backward_right, HIGH); 
-//     }
-//     else{
-//       Serial.println("TURNING OFF");
-//       digitalWrite(forward_left, LOW);
-//       digitalWrite(forward_right, LOW);
-//       digitalWrite(backward_left, LOW);
-//       digitalWrite(backward_right, LOW); 
-//     }
-//     oopsie_counter = 0;
-//   }
-//   else {
-//     oopsie_counter++;
-//     if (oopsie_counter == 100) {
-//       Serial.println("TURNING OFF");
-//       Serial.println("critical failure, radio absent for 1000ms");
-//       digitalWrite(forward_left, LOW);
-//       digitalWrite(forward_right, LOW);
-//       digitalWrite(backward_left, LOW);
-//       digitalWrite(backward_right, LOW); 
-//       oopsie_counter = 0;
-      
-//     }
-//     delay(delay_val);
-//   }
-// }
