@@ -47,7 +47,7 @@ enum class DATA_TYPE : uint8_t {
   NONE
 };
 
-enum COLOR {
+enum class COLOR : uint8_t {
   RED = 0b110,
   GREEN = 0b101,
   BLUE = 0b011,

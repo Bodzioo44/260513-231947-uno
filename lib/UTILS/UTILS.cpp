@@ -27,8 +27,8 @@ uint8_t calculate_CRC8(uint8_t* data, int size) {
 
 void LightLEDs(COLOR LED1, COLOR LED2) {
   uint8_t SIPO = 0b00000011;
-  SIPO = (SIPO << 3) ^ LED1;
-  SIPO = (SIPO << 3) ^ LED2;
+  SIPO = (SIPO << 3) ^ (uint8_t)LED1;
+  SIPO = (SIPO << 3) ^ (uint8_t)LED2;
 
   digitalWrite(RCLK, LOW); //lock data
   // Using switches from 2-7, so it has to start with LSB
