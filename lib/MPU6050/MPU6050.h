@@ -24,9 +24,9 @@ void LoadBMP180(BMP180Data& data, uint8_t* buffer);
 
 // QMC5883L
 void initializeQMC5883L(QMC5883LCompass& compass);
-QMCL588LData ReadQMCL5883L(QMC5883LCompass& compass);
-QMCL588LData ReadQMCL5883LFromBuffer(uint8_t* buffer);
-void LoadQMCL588L(QMCL588LData& data, uint8_t* buffer);
+QMCL588LData ReadQMC5883L(QMC5883LCompass& compass);
+QMCL588LData ReadQMC5883LFromBuffer(uint8_t* buffer);
+void LoadQMC5883L(QMCL588LData& data, uint8_t* buffer);
 
 // Debug functions
 void printBMP180(Adafruit_BMP085& bmp);

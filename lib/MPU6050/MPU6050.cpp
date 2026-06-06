@@ -87,7 +87,7 @@ void initializeQMC5883L(QMC5883LCompass& compass) {
   Serial.println(F("QMC5883L Found!"));
 }
 
-QMCL588LData ReadQMCL5883L(QMC5883LCompass& compass) {
+QMCL588LData ReadQMC5883L(QMC5883LCompass& compass) {
   QMCL588LData data;
   data.x = compass.getX();
   data.y = compass.getY();
@@ -99,13 +99,13 @@ QMCL588LData ReadQMCL5883L(QMC5883LCompass& compass) {
   return data;
 }
 
-QMCL588LData ReadQMCL5883LFromBuffer(uint8_t* buffer) {
+QMCL588LData ReadQMC5883LFromBuffer(uint8_t* buffer) {
   QMCL588LData data;
   memcpy(&data, buffer, sizeof(data));
   return data;
 }
 
-void LoadQMCL5883L(QMCL588LData& data, uint8_t* buffer) {
+void LoadQMC5883L(QMCL588LData& data, uint8_t* buffer) {
   memcpy(buffer, &data, sizeof(data));
 }
 

@@ -125,9 +125,9 @@ void loop() {
     }
     // Display Compass Screen
     case 4: {
-      QMCL588LData data = ReadQMCL5883LFromBuffer(buffer+3);
+      QMCL588LData data = ReadQMC5883LFromBuffer(buffer+3);
       DisplayMag(display, data, header);
-      header.RequestedData = DATA_TYPE::QMCL588L_DATA_RX;
+      header.RequestedData = DATA_TYPE::QMC5883L_DATA_RX;
       break;
     }
   }

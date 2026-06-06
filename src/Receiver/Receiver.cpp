@@ -52,7 +52,7 @@ void setup() {
   initializeQMC5883L(compass);
   initializeBMP180(bmp);
 
-  LightLEDs(OFF, OFF);
+  LightLEDs(COLOR::OFF, COLOR::OFF);
 
   if (!radio.begin()) {
     Serial.println(F("FAILED TO INITIALIZE RADIO! CHECK HARDWARE!"));
@@ -82,7 +82,7 @@ void loop() {
   // TODO: Get rid of the check? kinda useless since we only send buttons to RX
   Header header = ReadHeader(buffer);
   if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
-    buttons = ReadButtonsData(buffer+sizeof(header));
+    buttons = ReadButtonsDataFromBuffer(buffer+sizeof(header));
   }
 
   switch (header.RequestedData) {
@@ -98,12 +98,14 @@ void loop() {
       LoadBMP180(data, buffer+3);
       break;
     }
-    case DATA_TYPE::QMCL588L_DATA_RX: {
-      header.DataType = DATA_TYPE::QMCL588L_DATA_RX;
-      QMCL588LData data = ReadQMCL5883L(compass);
-      LoadQMCL588L(data, buffer+3);
+    case DATA_TYPE::QMC5883L_DATA_RX: {
+      header.DataType = DATA_TYPE::QMC5883L_DATA_RX;
+      QMCL588LData data = ReadQMC5883L(compass);
+      LoadQMC5883L(data, buffer+3);
       break;
     }
+    default:
+      break;
   }
 
   header.RequestedData = DATA_TYPE::BUTTONS_DATA_TX;
@@ -120,7 +122,7 @@ void loop() {
 
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
-    LightLEDs(GREEN, GREEN);
+    LightLEDs(COLOR::GREEN, COLOR::GREEN);
   }
   // Right
   else if (buttons.ButtonB) {
@@ -129,7 +131,7 @@ void loop() {
 
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
-    LightLEDs(YELLOW, YELLOW);
+    LightLEDs(COLOR::YELLOW, COLOR::YELLOW);
   }
   // BACK
   else if (buttons.ButtonC) {
@@ -138,7 +140,7 @@ void loop() {
 
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
-    LightLEDs(RED, RED);
+    LightLEDs(COLOR::RED, COLOR::RED);
   }
   // LEFT
   else if (buttons.ButtonD) {
@@ -148,12 +150,12 @@ void loop() {
     analogWrite(PWM_left, 255);
     analogWrite(PWM_right, 255);
 
-    LightLEDs(BLUE, BLUE);
+    LightLEDs(COLOR::BLUE, COLOR::BLUE);
   }
   else {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
-    LightLEDs(OFF, OFF);
+    LightLEDs(COLOR::OFF, COLOR::OFF);
   }
   // Connection lose protection
   // TODO: add additional check from unsigned long overflow.
@@ -161,6 +163,6 @@ void loop() {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
 
-    LightLEDs(RED,BLUE);
+    LightLEDs(COLOR::RED, COLOR::BLUE);
   }
 }
