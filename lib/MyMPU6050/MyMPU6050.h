@@ -26,6 +26,9 @@ class MyMPU6050{
         MPU6050Data readMPU6050FromBuffer(uint8_t* buffer);
         void loadMPU6050ToBuffer(MPU6050Data& data, uint8_t* buffer);
         void calibrate();
+        void print();
+        float getAccelY();
+
 };
 
 

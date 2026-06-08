@@ -68,6 +68,28 @@ CompassData MyCompass::readCompassFromSensor() {
     return data;
 }
 
+int MyCompass::getAzimuth() {
+    float raw_y = this->getY();
+    float raw_z = this->getZ();
+
+    float y_centered = raw_y - offset_y;
+    float z_centered = raw_z - offset_z;
+
+    if (amplitude_y > 0) y_centered /= amplitude_y;
+    if (amplitude_z > 0) z_centered /= amplitude_z;
+
+    float heading = atan2(-y_centered, z_centered);
+    heading += 0.1105;
+
+    float head_degrees = heading * 180.0 / PI;
+    head_degrees += 100.0;   
+
+    if (head_degrees < 0) head_degrees += 360.0;
+    if (head_degrees >= 360.0) head_degrees -= 360.0;
+
+    return head_degrees;
+}
+
 CompassData MyCompass::readCompassFromBuffer(uint8_t* buffer) {
     CompassData data;
     memcpy(&data, buffer+3, sizeof(CompassData));

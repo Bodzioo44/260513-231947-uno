@@ -25,7 +25,7 @@ void MyMPU6050::calibrate() {
   
   for (int i = 0; i < samples; i++) {
     MPU6050Data data = this->readMPU6050FromSensor();
-    AxOffset += data.Ax - 9.8f;
+    AxOffset += data.Ax - 9.81f;
     AyOffset += data.Ay;
     AzOffset += data.Az;
     GxOffset += data.Gx;
@@ -41,12 +41,12 @@ void MyMPU6050::calibrate() {
   GyOffset /= samples;
   GzOffset /= samples;
 
-  this->_calibrationData.Ax = AxOffset;
-  this->_calibrationData.Ay = AyOffset;
-  this->_calibrationData.Az = AzOffset;
-  this->_calibrationData.Gx = GxOffset;
-  this->_calibrationData.Gy = GyOffset;
-  this->_calibrationData.Gz = GzOffset;
+  this->_calibrationData.Ax = -AxOffset;
+  this->_calibrationData.Ay = -AyOffset;
+  this->_calibrationData.Az = -AzOffset;
+  this->_calibrationData.Gx = -GxOffset;
+  this->_calibrationData.Gy = -GyOffset;
+  this->_calibrationData.Gz = -GzOffset;
 
 
 
@@ -69,6 +69,10 @@ MPU6050Data MyMPU6050::readMPU6050FromSensor() {
   // float AyOffset = -0.065f;
   // float AzOffset = +1.45f;
 
+  // Serial.print("Raw Ax: "); Serial.println(a.acceleration.x);
+  // Serial.print("Raw Ay: "); Serial.println(a.acceleration.y);
+  // Serial.print("Raw Az: "); Serial.println(a.acceleration.z);
+
   data.Ax = a.acceleration.x + this->_calibrationData.Ax;
   data.Ay = a.acceleration.y + this->_calibrationData.Ay;
   data.Az = a.acceleration.z + this->_calibrationData.Az;
@@ -87,6 +91,13 @@ MPU6050Data MyMPU6050::readMPU6050FromSensor() {
   return data;
 }
 
+float MyMPU6050::getAccelY() {
+  sensors_event_t a, g, temp;
+  this->_base.getEvent(&a, &g, &temp);
+  float Ay = a.acceleration.y + this->_calibrationData.Ay;
+  return Ay;
+}
+
 MPU6050Data MyMPU6050::readMPU6050FromBuffer(uint8_t* buffer) {
   MPU6050Data data;
   memcpy(&data, buffer+3, sizeof(data));
@@ -95,4 +106,17 @@ MPU6050Data MyMPU6050::readMPU6050FromBuffer(uint8_t* buffer) {
 
 void MyMPU6050::loadMPU6050ToBuffer(MPU6050Data& data, uint8_t* buffer) {
   memcpy(buffer+3, &data, sizeof(data));
+}
+
+void MyMPU6050::print() {
+  MPU6050Data data = readMPU6050FromSensor();
+
+  Serial.println("MPU6050 Data: ");
+  Serial.print("Ax: "); Serial.println(data.Ax);
+  Serial.print("Ay: "); Serial.println(data.Ay);  
+  Serial.print("Az: "); Serial.println(data.Az);
+  Serial.print("Gx: "); Serial.println(data.Gx);
+  Serial.print("Gy: "); Serial.println(data.Gy);
+  Serial.print("Gz: "); Serial.println(data.Gz);
+  Serial.println("");
 }
