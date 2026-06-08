@@ -26,7 +26,7 @@ uint8_t calculate_CRC8(uint8_t* data, int size) {
 }
 
 void LightLEDs(COLOR LED1, COLOR LED2) {
-  uint8_t SIPO = 0b00000011;
+  uint8_t SIPO = 0;
   SIPO = (SIPO << 3) ^ (uint8_t)LED1;
   SIPO = (SIPO << 3) ^ (uint8_t)LED2;
 
@@ -62,7 +62,7 @@ void LoadCRC8(uint8_t* buffer_start, uint8_t* buffer) {
 }
 
 void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data) {
-  memcpy(buffer, &data, sizeof(data)); buffer += sizeof(data);
+  memcpy(buffer+3, &data, sizeof(data));
 }
 
 ButtonsData ReadButtons() {
@@ -76,7 +76,7 @@ ButtonsData ReadButtons() {
 
 ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer) {
   ButtonsData data;
-  memcpy(&data, buffer, sizeof(data));
+  memcpy(&data, buffer+3, sizeof(data));
   return data;
 }
 

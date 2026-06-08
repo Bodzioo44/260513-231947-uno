@@ -75,10 +75,10 @@ void MyDisplay::displayMag(CompassData& data, bool& TX_screen) {
   this->_base.print((TX_screen) ? F("TX") : F("RX")); 
   this->_base.println(F(" COMPASS"));
 
-  this->_base.print(F("X: ")); this->_base.println(data.x, 5);
-  this->_base.print(F("Y: ")); this->_base.println(data.y, 5);
-  this->_base.print(F("Z: ")); this->_base.println(data.z, 5);
-  this->_base.print(F("A:")); this->_base.println(data.a, 5);
+  this->_base.print(F("X: ")); this->_base.println(data.x);
+  this->_base.print(F("Y: ")); this->_base.println(data.y);
+  this->_base.print(F("Z: ")); this->_base.println(data.z);
+  this->_base.print(F("A:")); this->_base.println(data.a);
   this->_base.print(F("Dir: ")); this->_base.write(data.Direction, 3);
 
   this->_base.display();

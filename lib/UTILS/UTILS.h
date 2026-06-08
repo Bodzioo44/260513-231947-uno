@@ -31,8 +31,6 @@
 
 #define RADARSAMPLES 20
 
-
-
 enum class DATA_TYPE : uint8_t {
   BUTTONS_DATA_TX,
   MPU6050_DATA_TX,
@@ -74,35 +72,6 @@ struct ButtonsData {
   bool ButtonF;
   uint16_t joystickX;
   uint16_t joystickY;
-} __attribute__((packed));
-
-// 28 Bytes of MPU data
-// Questionable, might need reduced precision later, or split payloads
-struct MPU6050Data {
-  float Ax;
-  float Ay;
-  float Az;
-  float Gx;
-  float Gy;
-  float Gz;
-  float Temp;
-} __attribute__((packed));
-
-// 16 Bytes of BMP data
-struct BMP180Data {
-  float Temp;
-  int32_t Pressure;
-  float Altitude;
-  int32_t SeaLevelPressure; 
-} __attribute__((packed));
-
-// 11 Bytes of QMCL data
-struct QMCL588LData {
-  int x;
-  int y;
-  int z;
-  int a;
-  char Direction[3];
 } __attribute__((packed));
 
 int freeRam();
