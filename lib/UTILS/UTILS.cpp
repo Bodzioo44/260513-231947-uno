@@ -137,3 +137,14 @@ int8_t FloatToUint8(float& value) {
     value *= 10.0f;
     return (int8_t)value;
 }
+
+
+SpeedData ReadSpeedDataFromBuffer(uint8_t* buffer) {
+  SpeedData data;
+  memcpy(&data, buffer+3, sizeof(data));
+  return data;
+}
+
+void LoadBufferWithSpeedData(uint8_t* buffer, SpeedData& data) {
+  memcpy(buffer+3, &data, sizeof(data));
+}

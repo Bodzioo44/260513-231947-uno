@@ -25,6 +25,7 @@ class MyDisplay {
         void displayAccel(MPU6050Data& data, bool& TX_screen);
         void displayBaro(BMP180Data& data, bool& TX_screen);
         void displayMag(CompassData& data, bool& TX_screen);
+        void displaySpeed(SpeedData& data, bool& TX_screen);
 
         void message(const char* msg) {
             this->_base.clearDisplay();

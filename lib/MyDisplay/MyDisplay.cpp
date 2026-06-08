@@ -88,3 +88,17 @@ void MyDisplay::displayMag(CompassData& data, bool& TX_screen) {
   this->_base.display();
 }
 
+void MyDisplay::displaySpeed(SpeedData& data, bool& TX_screen) {
+  this->_base.clearDisplay();
+  this->_base.setCursor(0,0);
+
+  this->_base.print((TX_screen) ? F("TX") : F("RX")); 
+  this->_base.println(F(" Speeed"));
+
+  this->_base.print(F("ACC: ")); this->_base.println(data.current_acceleration, 5);
+  this->_base.print(F("VEL: ")); this->_base.println(data.current_velocity, 5);
+  this->_base.print(F("DIST: ")); this->_base.println(data.current_distance, 5);
+
+  this->_base.display();
+
+}

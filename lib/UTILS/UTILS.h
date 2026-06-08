@@ -41,6 +41,7 @@ enum class DATA_TYPE : uint8_t {
   BMP180_DATA_RX,
   QMC5883L_DATA_RX,
   RADAR_DATA_RX,
+  SPEEEED_DATA_RX,
 
   NONE
 };
@@ -56,11 +57,22 @@ enum class COLOR : uint8_t {
   OFF = 0b111
 };
 
+//////////
+// HEADER
+//////////
+
 struct Header {
   DATA_TYPE DataType; 
   DATA_TYPE RequestedData;
   uint8_t TransmissionID;
 } __attribute__((packed));
+
+Header ReadHeader(uint8_t* buffer);
+void LoadHeader(uint8_t* buffer, Header& header);
+
+///////////
+// BUTTONS
+///////////
 
 // 10 Bytes of button data
 struct ButtonsData {
@@ -74,11 +86,34 @@ struct ButtonsData {
   uint16_t joystickY;
 } __attribute__((packed));
 
+ButtonsData ReadButtons();
+ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer);
+void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data);
+bool WasButtonPressed(int Button, bool& wasPressed);
+
+/////////////////
+// SPEEEEED DATA
+/////////////////
+
+struct SpeedData {
+  float current_acceleration;
+  float current_velocity;
+  float current_distance;
+} __attribute__((packed));
+
+SpeedData ReadSpeedDataFromBuffer(uint8_t* buffer);
+void LoadBufferWithSpeedData(uint8_t* buffer, SpeedData& data);
+
+//////////
+// UTILS
+//////////
+
+
 int freeRam();
 uint8_t calculate_CRC8(uint8_t* data, int size);
 
 void LightLEDs(COLOR LED1, COLOR LED2);
-bool WasButtonPressed(int Button, bool& wasPressed);
+
 
 void DisplayData(uint8_t* buffer);
 
@@ -86,18 +121,6 @@ void DisplayData(uint8_t* buffer);
 
 void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples);
 int GetDistance();
-
-
-
-void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data);
-ButtonsData ReadButtons();
-ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer);
-
-
-Header ReadHeader(uint8_t* buffer);
-void LoadHeader(uint8_t* buffer, Header& header);
-
-
 
 
 
