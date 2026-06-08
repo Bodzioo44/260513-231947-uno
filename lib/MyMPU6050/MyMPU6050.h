@@ -3,7 +3,7 @@
 
 #include <Adafruit_MPU6050.h>
 
-
+// 28 bytes of data
 struct MPU6050Data {
   float Ax;
   float Ay;
@@ -17,6 +17,7 @@ struct MPU6050Data {
 class MyMPU6050{
     private:
         Adafruit_MPU6050 _base;
+        MPU6050Data _calibrationData;
 
     public:
         MyMPU6050() : _base() {};
@@ -24,6 +25,7 @@ class MyMPU6050{
         MPU6050Data readMPU6050FromSensor();
         MPU6050Data readMPU6050FromBuffer(uint8_t* buffer);
         void loadMPU6050ToBuffer(MPU6050Data& data, uint8_t* buffer);
+        void calibrate();
 };
 
 

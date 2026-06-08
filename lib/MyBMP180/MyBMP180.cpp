@@ -15,9 +15,9 @@ void MyBMP180::initialize() {
 BMP180Data MyBMP180::readBMP180FromSensor() {
   BMP180Data data;
   data.Temp = this->_base.readRawTemperature()/1000.0f;
-  data.Pressure = this->_base.readPressure();
+  data.Pressure = this->_base.readPressure()/100;
   data.Altitude = this->_base.readAltitude();
-  data.SeaLevelPressure = this->_base.readSealevelPressure();
+  data.SeaLevelPressure = this->_base.readSealevelPressure()/100;
 
   return data;
 }

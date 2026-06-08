@@ -16,28 +16,71 @@ void MyMPU6050::initialize() {
   delay(100);
 }
 
+void MyMPU6050::calibrate() {
+  Serial.println(F("Starting mpu6050 calibration..."));
+  float AxOffset = 0, AyOffset = 0, AzOffset = 0;
+  float GxOffset = 0, GyOffset = 0, GzOffset = 0;
+
+  int samples = 250;
+  
+  for (int i = 0; i < samples; i++) {
+    MPU6050Data data = this->readMPU6050FromSensor();
+    AxOffset += data.Ax - 9.8f;
+    AyOffset += data.Ay;
+    AzOffset += data.Az;
+    GxOffset += data.Gx;
+    GyOffset += data.Gy;
+    GzOffset += data.Gz;
+    delay(20);
+  }
+
+  AxOffset /= samples;
+  AyOffset /= samples;
+  AzOffset /= samples;
+  GxOffset /= samples;
+  GyOffset /= samples;
+  GzOffset /= samples;
+
+  this->_calibrationData.Ax = AxOffset;
+  this->_calibrationData.Ay = AyOffset;
+  this->_calibrationData.Az = AzOffset;
+  this->_calibrationData.Gx = GxOffset;
+  this->_calibrationData.Gy = GyOffset;
+  this->_calibrationData.Gz = GzOffset;
+
+
+
+  Serial.println(F("Calibration complete!"));
+  Serial.print(F("AxOffset: ")); Serial.println(AxOffset);
+  Serial.print(F("AyOffset: ")); Serial.println(AyOffset);
+  Serial.print(F("AzOffset: ")); Serial.println(AzOffset);
+  Serial.print(F("GxOffset: ")); Serial.println(GxOffset);
+  Serial.print(F("GyOffset: ")); Serial.println(GyOffset);
+  Serial.print(F("GzOffset: ")); Serial.println(GzOffset);
+}
+
 MPU6050Data MyMPU6050::readMPU6050FromSensor() {
   MPU6050Data data;
   sensors_event_t a, g, temp;
   this->_base.getEvent(&a, &g, &temp);
 
   // RX Side for now
-  float AxOffset = -0.325f;
-  float AyOffset = -0.065f;
-  float AzOffset = +1.45f;
+  // float AxOffset = -0.325f;
+  // float AyOffset = -0.065f;
+  // float AzOffset = +1.45f;
 
-  data.Ax = a.acceleration.x + AxOffset;
-  data.Ay = a.acceleration.y + AyOffset;
-  data.Az = a.acceleration.z + AzOffset;
+  data.Ax = a.acceleration.x + this->_calibrationData.Ax;
+  data.Ay = a.acceleration.y + this->_calibrationData.Ay;
+  data.Az = a.acceleration.z + this->_calibrationData.Az;
 
   // RX Side for now
-  float GxOffset = 0.049f;
-  float GyOffset = -0.0205f;
-  float GzOffset = 0.005f;
+  // float GxOffset = 0.049f;
+  // float GyOffset = -0.0205f;
+  // float GzOffset = 0.005f;
 
-  data.Gx = g.gyro.x + GxOffset;
-  data.Gy = g.gyro.y + GyOffset;
-  data.Gz = g.gyro.z + GzOffset;
+  data.Gx = g.gyro.x + this->_calibrationData.Gx;
+  data.Gy = g.gyro.y + this->_calibrationData.Gy;
+  data.Gz = g.gyro.z + this->_calibrationData.Gz;
 
   data.Temp = temp.temperature;
 

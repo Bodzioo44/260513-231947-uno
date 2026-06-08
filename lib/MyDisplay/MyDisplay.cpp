@@ -59,11 +59,15 @@ void MyDisplay::displayBaro(BMP180Data& data, bool& TX_screen) {
   this->_base.clearDisplay();
   this->_base.setCursor(0,0);
 
-  this->_base.print((TX_screen) ? F("TX") : F("RX")); 
-  this->_base.println(F(" BARO"));
+  this->_base.print((TX_screen) ? F("-- TX") : F("-- RX")); 
+  this->_base.println(F(" BARO --"));
+  this->_base.println(F("C, hPa, m"));
 
   this->_base.print(F("Temp: ")); this->_base.println(data.Temp, 2);
   this->_base.print(F("Pres: ")); this->_base.println(data.Pressure);
+
+  this->_base.print(F("Sea: ")); this->_base.println(data.SeaLevelPressure);
+  this->_base.print(F("Alt: ")); this->_base.println(data.Altitude, 2);
 
   this->_base.display();
 }
