@@ -4,27 +4,12 @@
 #include <RF24.h>
 #include <Wire.h>
 
-// #include "MPU6050.h"
 #include "MyCompass.h"
 #include "MyMPU6050.h"
 #include "MyBMP180.h"
 #include "MyDisplay.h"
 
 #include "UTILS.h"
-// #include "Adafruit_Nokia5110.h"
-// #include "Gavin_Nokia5110.h"
-
-// Software SPI, Doesnt work with multiple SPI chips???
-// Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, A2, A3, A4);
-
-// Hardware SPI: D/C A2, CE 8, RST A3
-// Adafruit_PCD8544 display = Adafruit_PCD8544(DC, CE, RST);
-// NOKIA5110_TEXT display(RST, CE, DC);
-
-
-// Adafruit_MPU6050 mpu;
-// QMC5883LCompass compass;
-// Adafruit_BMP085 bmp;
 
 MyDisplay display;
 
@@ -97,7 +82,7 @@ void loop() {
     TX_screen = true;
   }
   if (WasButtonPressed(BTN_F, BTN_F_Pressed)) {
-    F = (F + 1) % 4;
+    F = (F + 1) % 5;
     TX_screen = false;
   }
 
@@ -140,27 +125,37 @@ void loop() {
     switch (F) {
       case 0: {
         header.RequestedData = DATA_TYPE::QMC5883L_DATA_RX;
+        if (header.DataType != DATA_TYPE::QMC5883L_DATA_RX) break;
         CompassData data = compass.readCompassFromBuffer(buffer);
         display.displayMag(data, TX_screen);
         break;
       }
       case 1: {
         header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
+        if (header.DataType != DATA_TYPE::MPU6050_DATA_RX) break;
         MPU6050Data data = mpu.readMPU6050FromBuffer(buffer);
         display.displayAccel(data, TX_screen);
         break;
       }
       case 2: {
         header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
+        if (header.DataType != DATA_TYPE::MPU6050_DATA_RX) break;
         MPU6050Data data = mpu.readMPU6050FromBuffer(buffer);
         display.displayGyro(data, TX_screen);
         break;
       }
       case 3: {
         header.RequestedData = DATA_TYPE::BMP180_DATA_RX;
+        if (header.DataType != DATA_TYPE::BMP180_DATA_RX) break;
         BMP180Data data = bmp.readBMP180FromBuffer(buffer);
         display.displayBaro(data, TX_screen);
         break;
+      }
+      case 4: {
+        header.RequestedData = DATA_TYPE::SPEEEED_DATA_RX;
+        if (header.DataType != DATA_TYPE::SPEEEED_DATA_RX) break;
+        SpeedData data = ReadSpeedDataFromBuffer(buffer);
+        display.displaySpeed(data, TX_screen);
       }
       default: 
         break;
@@ -173,7 +168,7 @@ void loop() {
   LoadHeader(buffer, header);
   LoadBufferWithButtonsData(buffer, btns_data);
 
-  Serial.println(F("Sending data to RX..."));
+  Serial.print(F("Sending data to RX... With transmission ID:")); Serial.println(transmissionID);
   DisplayData(buffer);
   bool success = radio.write(buffer, sizeof(buffer));
 
@@ -195,7 +190,5 @@ void loop() {
   }
 
   Serial.print(F("Free RAM: ")); Serial.println(freeRam());
-
-  // delay(200); 
 
 }

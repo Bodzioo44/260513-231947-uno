@@ -30,7 +30,17 @@ const uint8_t addresses[] = { 0xD4, 0xF6 };
 ButtonsData buttons;
 
 int reply_data = 0;
-unsigned long last_radio_response;
+unsigned long last_radio_response = 0;
+
+unsigned long last_measurement = 0;
+// unsigned long time_from_stop = 0;
+
+float last_acceleration = 0;
+float last_velocity = 0.0f;
+
+float current_velocity = 0;
+float current_distance = 0;
+
 uint8_t radar_data[RADARSAMPLES];
 
 void setup() {
@@ -80,16 +90,58 @@ void setup() {
   LightLEDs(COLOR::OFF, COLOR::OFF);
   delay(2500);
 
+  // calibrate mpu6050 for 10 sec
   LightLEDs(COLOR::RED, COLOR::RED);
-  delay(2500);
-  LightLEDs(COLOR::RED, COLOR::GREEN);
+  mpu.calibrate();
+
+  // calibrate compass for 10 sec
+  digitalWrite(forward_left, HIGH);
+  digitalWrite(forward_right, LOW);
+
+  analogWrite(PWM_left, 160);
+  analogWrite(PWM_right, 160);
+  LightLEDs(COLOR::YELLOW, COLOR::YELLOW);
   compass.calibrate();
+
+  // acknowledge calibration complete
+  analogWrite(PWM_left, 0);
+  analogWrite(PWM_right, 0);
   LightLEDs(COLOR::GREEN, COLOR::GREEN);
   delay(2500);
   LightLEDs(COLOR::OFF, COLOR::OFF);
 }
 
 void loop() {
+  unsigned long current_time = millis(); // to avoid rollover?
+
+  float dt = (current_time - last_measurement) / 1000.0f;
+  last_measurement = current_time;
+
+  float current_acceleration = mpu.getAccelY();
+  if (abs(current_acceleration) < 0.1) {
+    current_acceleration = 0;
+  }
+  // else {
+  //   Serial.println("WE GOT THEMMMM");
+  // }
+
+  current_velocity += ((last_acceleration + current_acceleration) / 2.0f) * dt;
+  current_distance += ((last_velocity + current_velocity) / 2.0f) * dt;
+
+  last_acceleration = current_acceleration;
+  last_velocity = current_velocity;
+
+  Serial.print("Total Distance: "); Serial.println(current_distance);
+  
+
+  Serial.print(F("Current Accel Y: ")); Serial.println(current_acceleration);
+  // Serial.print(F("Current Azimuth: ")); Serial.println(compass.getAzimuth());
+  Serial.print(F("Current Velocity: ")); Serial.println(current_velocity);
+
+
+  // mpu.print();
+  // delay(50);
+
   if (radio.available()) {
     radio.read(&buffer, sizeof(buffer));
     Serial.println(F("Data received from TX:"));
@@ -118,10 +170,18 @@ void loop() {
       }
       case DATA_TYPE::QMC5883L_DATA_RX: {
         header.DataType = DATA_TYPE::QMC5883L_DATA_RX;
-        // QMC5883LData data = ReadQMC5883L(compass);
-        // LoadQMC5883L(data, buffer+3);
         CompassData data = compass.readCompassFromSensor();
         compass.loadCompassToBuffer(data, buffer);
+        break;
+      }
+      case DATA_TYPE::SPEEEED_DATA_RX: {
+        header.DataType = DATA_TYPE::SPEEEED_DATA_RX;
+        SpeedData data = {
+          .current_acceleration = current_acceleration,
+          .current_velocity = current_velocity,
+          .current_distance = current_distance
+        };
+        LoadBufferWithSpeedData(buffer, data);
         break;
       }
       default:
@@ -179,6 +239,9 @@ void loop() {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);
     LightLEDs(COLOR::OFF, COLOR::OFF);
+
+    current_velocity = 0;
+
   }
   // Connection lose protection
   // TODO: add additional check from unsigned long overflow?
