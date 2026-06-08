@@ -4,7 +4,11 @@
 #include <RF24.h>
 #include <Servo.h>
 
-#include "MPU6050.h"
+// #include "MPU6050.h"
+#include "MyCompass.h"
+#include "MyMPU6050.h"
+#include "MyBMP180.h"
+
 #include "UTILS.h"
 
 #define PWM_left 5
@@ -13,11 +17,12 @@
 #define forward_right 2
 
 
-Servo myservo; 
+Servo myservo;
 
-Adafruit_MPU6050 mpu;
-QMC5883LCompass compass;
-Adafruit_BMP085 bmp;
+MyMPU6050 mpu;
+MyCompass compass;
+MyBMP180 bmp;
+
 
 RF24 radio(9, 10); // CE, CSN
 uint8_t buffer[32]; 
@@ -28,14 +33,14 @@ int reply_data = 0;
 unsigned long last_radio_response;
 uint8_t radar_data[RADARSAMPLES];
 
-
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(PWM_left, OUTPUT);
   pinMode(PWM_right, OUTPUT);
   pinMode(forward_left, OUTPUT);
   pinMode(forward_right, OUTPUT);
+
   pinMode(RCLK, OUTPUT);
   pinMode(SCLK, OUTPUT);
   pinMode(SER, OUTPUT);
@@ -47,12 +52,13 @@ void setup() {
   analogWrite(PWM_left, 0);
   analogWrite(PWM_right, 0);
 
-  initializeMPU6050(mpu);
-  mpu.setI2CBypass(true);
-  initializeQMC5883L(compass);
-  initializeBMP180(bmp);
+  mpu.initialize();
+  compass.initialize();
+  bmp.initialize();
 
-  LightLEDs(COLOR::OFF, COLOR::OFF);
+  digitalWrite(RCLK, HIGH); 
+  digitalWrite(SER, LOW);
+  digitalWrite(SCLK, LOW);
 
   if (!radio.begin()) {
     Serial.println(F("FAILED TO INITIALIZE RADIO! CHECK HARDWARE!"));
@@ -69,51 +75,68 @@ void setup() {
 
   radio.writeAckPayload(1, &buffer, sizeof(buffer));
   
+  // No idea whats happening here, or why its needed
+  LightLEDs(COLOR::OFF, COLOR::OFF);
+  LightLEDs(COLOR::OFF, COLOR::OFF);
+  delay(2500);
+
+  LightLEDs(COLOR::RED, COLOR::RED);
+  delay(2500);
+  LightLEDs(COLOR::RED, COLOR::GREEN);
+  compass.calibrate();
+  LightLEDs(COLOR::GREEN, COLOR::GREEN);
+  delay(2500);
+  LightLEDs(COLOR::OFF, COLOR::OFF);
 }
 
 void loop() {
   if (radio.available()) {
     radio.read(&buffer, sizeof(buffer));
-    Serial.println(F("Data received from TX"));
+    Serial.println(F("Data received from TX:"));
     DisplayData(buffer);
     last_radio_response = millis();
-  }
+  
 
-  // TODO: Get rid of the check? kinda useless since we only send buttons to RX
-  Header header = ReadHeader(buffer);
-  if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
-    buttons = ReadButtonsDataFromBuffer(buffer+sizeof(header));
-  }
-
-  switch (header.RequestedData) {
-    case DATA_TYPE::MPU6050_DATA_RX: {
-      header.DataType = DATA_TYPE::MPU6050_DATA_RX;
-      MPU6050Data data = ReadMPU6050(mpu);
-      LoadMPU6050(data, buffer+3);
-      break;
+    // TODO: Get rid of the check? kinda useless since we only send buttons to RX
+    Header header = ReadHeader(buffer);
+    if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
+      buttons = ReadButtonsDataFromBuffer(buffer);
     }
-    case DATA_TYPE::BMP180_DATA_RX: {
-      header.DataType = DATA_TYPE::BMP180_DATA_RX;
-      BMP180Data data = ReadBMP180(bmp);
-      LoadBMP180(data, buffer+3);
-      break;
+
+    switch (header.RequestedData) {
+      case DATA_TYPE::MPU6050_DATA_RX: {
+        header.DataType = DATA_TYPE::MPU6050_DATA_RX;
+        MPU6050Data data = mpu.readMPU6050FromSensor();
+        mpu.loadMPU6050ToBuffer(data, buffer);
+        break;
+      }
+      case DATA_TYPE::BMP180_DATA_RX: {
+        header.DataType = DATA_TYPE::BMP180_DATA_RX;
+        BMP180Data data = bmp.readBMP180FromSensor();
+        bmp.loadBMP180ToBuffer(data, buffer);
+        break;
+      }
+      case DATA_TYPE::QMC5883L_DATA_RX: {
+        header.DataType = DATA_TYPE::QMC5883L_DATA_RX;
+        // QMC5883LData data = ReadQMC5883L(compass);
+        // LoadQMC5883L(data, buffer+3);
+        CompassData data = compass.readCompassFromSensor();
+        compass.loadCompassToBuffer(data, buffer);
+        break;
+      }
+      default:
+        break;
     }
-    case DATA_TYPE::QMC5883L_DATA_RX: {
-      header.DataType = DATA_TYPE::QMC5883L_DATA_RX;
-      QMCL588LData data = ReadQMC5883L(compass);
-      LoadQMC5883L(data, buffer+3);
-      break;
-    }
-    default:
-      break;
+
+    header.RequestedData = DATA_TYPE::BUTTONS_DATA_TX;
+    LoadHeader(buffer, header);
+    buffer[31] = calculate_CRC8(buffer, sizeof(buffer)-1);
+
+    Serial.println(F("Sending data to TX (by loading AckPayload)..."));
+    DisplayData(buffer);
+    bool test = radio.writeAckPayload(1, &buffer, sizeof(buffer));
+    Serial.println(test);
   }
-
-  header.RequestedData = DATA_TYPE::BUTTONS_DATA_TX;
-  LoadHeader(buffer, header);
-  buffer[31] = calculate_CRC8(buffer, sizeof(buffer)-1);
-
-  radio.writeAckPayload(1, &buffer, sizeof(buffer));
-    
 
   // Forward
   if (buttons.ButtonA) {
@@ -158,7 +181,7 @@ void loop() {
     LightLEDs(COLOR::OFF, COLOR::OFF);
   }
   // Connection lose protection
-  // TODO: add additional check from unsigned long overflow.
+  // TODO: add additional check from unsigned long overflow?
   if (millis()-last_radio_response > 1000) {
     analogWrite(PWM_left, 0);
     analogWrite(PWM_right, 0);

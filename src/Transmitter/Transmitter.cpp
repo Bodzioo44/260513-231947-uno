@@ -4,22 +4,33 @@
 #include <RF24.h>
 #include <Wire.h>
 
-#include "MPU6050.h"
+// #include "MPU6050.h"
+#include "MyCompass.h"
+#include "MyMPU6050.h"
+#include "MyBMP180.h"
+#include "MyDisplay.h"
+
 #include "UTILS.h"
-#include "Adafruit_Nokia5110.h"
+// #include "Adafruit_Nokia5110.h"
 // #include "Gavin_Nokia5110.h"
 
 // Software SPI, Doesnt work with multiple SPI chips???
 // Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, A2, A3, A4);
 
 // Hardware SPI: D/C A2, CE 8, RST A3
-Adafruit_PCD8544 display = Adafruit_PCD8544(DC, CE, RST);
+// Adafruit_PCD8544 display = Adafruit_PCD8544(DC, CE, RST);
 // NOKIA5110_TEXT display(RST, CE, DC);
 
 
-Adafruit_MPU6050 mpu;
-QMC5883LCompass compass;
-Adafruit_BMP085 bmp;
+// Adafruit_MPU6050 mpu;
+// QMC5883LCompass compass;
+// Adafruit_BMP085 bmp;
+
+MyDisplay display;
+
+MyMPU6050 mpu;
+MyCompass compass;
+MyBMP180 bmp;
 
 RF24 radio(9, 10); // CE, CSN
 uint8_t buffer[32]; 
@@ -31,7 +42,9 @@ uint8_t transmissionID = 0;
 
 bool BTN_E_Pressed = false;
 bool BTN_F_Pressed = false;
-uint8_t current_screen = 0;
+uint8_t E = 0;
+uint8_t F = 0;
+bool TX_screen = true;
 
 void setup() {
   pinMode(BTN_A, INPUT_PULLUP);
@@ -41,19 +54,19 @@ void setup() {
   pinMode(BTN_E, INPUT_PULLUP);
   pinMode(BTN_F, INPUT_PULLUP);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
-  initializeMPU6050(mpu);
-  mpu.setI2CBypass(true);
-  initializeQMC5883L(compass);
-  initializeBMP180(bmp);
+  display.initialize();
 
-  InitScreen(display);
+  mpu.initialize(); // has to go first, contains I2C bypass
+  compass.initialize();
+  bmp.initialize();
+  // initializeQMC5883L(compass);
+  // initializeBMP180(bmp);
+
 
   if (!radio.begin()) {
-    display.clearDisplay();
-    display.println(F("FAILED TO INITIALIZE RADIO! CHECK HARDWARE!"));
-    display.display();
+    display.message(F("FAILED TO INITIALIZE RADIO! CHECK HARDWARE!"));
     while (1); 
   }
 
@@ -69,9 +82,7 @@ void setup() {
   // radio.setCRCLength(RF24_CRC_16);
   // radio.setDataRate(RF24_250KBPS);
 
-  display.println(F("READY..."));
-  display.display();
-
+  display.message(F("Transmitter Initialized!"));
   delay(1000);
 
   header.DataType = DATA_TYPE::BUTTONS_DATA_TX;
@@ -82,53 +93,77 @@ void setup() {
 
 void loop() {
   if (WasButtonPressed(BTN_E, BTN_E_Pressed)) {
-    current_screen = (current_screen + 1) % 4;
+    E = (E + 1) % 5;
+    TX_screen = true;
   }
   if (WasButtonPressed(BTN_F, BTN_F_Pressed)) {
-    if (current_screen == 0) { current_screen = 4; }
-    else { current_screen -=1; } 
+    F = (F + 1) % 4;
+    TX_screen = false;
   }
 
   btns_data = ReadButtons();
-  // This displays previous data, and requests a new one.
-  // based on currently selected screen
-  // TODO: Change this switch case to match received header data type?
-  // Buttons only change requested data type?
-  // If none were selected (or connection was lost)it defaults to debug screen?
-  // BAD IDEA, we want to display data from TX too, so it cant be based on received data
-  switch (current_screen) {
-    // Display Button Screen
-    case 0:
-      header.RequestedData = DATA_TYPE::NONE;
-      DisplayButtons(display, btns_data);
-      break;
-    // Display Accel Screen
-    case 1: {
-      MPU6050Data data = ReadMPU6050FromBuffer(buffer+3);
-      DisplayAccel(display, data, header);
-      header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
-      break;
+
+  // Transmitter side
+  if (TX_screen) {
+    header.RequestedData = DATA_TYPE::NONE;
+    switch (E) {
+      case 0: {
+        CompassData data = compass.readCompassFromSensor();
+        display.displayMag(data, TX_screen);
+        break;
+      }
+      case 1: {
+        MPU6050Data data = mpu.readMPU6050FromSensor();
+        display.displayAccel(data, TX_screen);
+        break;
+      }
+      case 2: {
+        MPU6050Data data = mpu.readMPU6050FromSensor();
+        display.displayGyro(data, TX_screen);
+        break;
+      }
+      case 3: {
+        BMP180Data data = bmp.readBMP180FromSensor();
+        display.displayBaro(data, TX_screen);
+        break;
+      }
+      case 4: {
+        display.displayButtons(btns_data);
+        break;
+      }
+      default:
+        break;
     }
-    // Display Gyro Screen
-    case 2: {
-      MPU6050Data data = ReadMPU6050FromBuffer(buffer+3);
-      DisplayGyro(display, data, header);
-      header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
-      break;
-    }
-    // Display Baro Screen
-    case 3: {
-      BMP180Data data = ReadBMP180FromBuffer(buffer+3);
-      DisplayBaro(display, data, header);
-      header.RequestedData = DATA_TYPE::BMP180_DATA_RX;
-      break;
-    }
-    // Display Compass Screen
-    case 4: {
-      QMCL588LData data = ReadQMC5883LFromBuffer(buffer+3);
-      DisplayMag(display, data, header);
-      header.RequestedData = DATA_TYPE::QMC5883L_DATA_RX;
-      break;
+  }
+  // Receiver side
+  else {
+    switch (F) {
+      case 0: {
+        header.RequestedData = DATA_TYPE::QMC5883L_DATA_RX;
+        CompassData data = compass.readCompassFromBuffer(buffer);
+        display.displayMag(data, TX_screen);
+        break;
+      }
+      case 1: {
+        header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
+        MPU6050Data data = mpu.readMPU6050FromBuffer(buffer);
+        display.displayAccel(data, TX_screen);
+        break;
+      }
+      case 2: {
+        header.RequestedData = DATA_TYPE::MPU6050_DATA_RX;
+        MPU6050Data data = mpu.readMPU6050FromBuffer(buffer);
+        display.displayGyro(data, TX_screen);
+        break;
+      }
+      case 3: {
+        header.RequestedData = DATA_TYPE::BMP180_DATA_RX;
+        BMP180Data data = bmp.readBMP180FromBuffer(buffer);
+        display.displayBaro(data, TX_screen);
+        break;
+      }
+      default: 
+        break;
     }
   }
 
@@ -136,16 +171,20 @@ void loop() {
   header.DataType = DATA_TYPE::BUTTONS_DATA_TX;
   header.TransmissionID = transmissionID;
   LoadHeader(buffer, header);
-  LoadBufferWithButtonsData(buffer+3, btns_data);
+  LoadBufferWithButtonsData(buffer, btns_data);
 
+  Serial.println(F("Sending data to RX..."));
+  DisplayData(buffer);
   bool success = radio.write(buffer, sizeof(buffer));
 
   // Saves AckPayload into buffer
   if (success) {
+    transmissionID++;
     if (radio.isAckPayloadAvailable()) {
       radio.read(&buffer, sizeof(buffer));
-        Serial.println(F("Success! Ack payload received: "));
-        DisplayData(buffer);
+      header = ReadHeader(buffer);
+      Serial.println(F("Success! Ack payload received: "));
+      DisplayData(buffer);
     }
     else {
       Serial.println(F("Success, but no ACK payload returned."));
@@ -157,6 +196,6 @@ void loop() {
 
   Serial.print(F("Free RAM: ")); Serial.println(freeRam());
 
-  delay(200); 
-  transmissionID++;
+  // delay(200); 
+
 }
