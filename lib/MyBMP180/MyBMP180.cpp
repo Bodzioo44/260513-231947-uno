@@ -1,8 +1,5 @@
 #include "MyBMP180.h"
 
-
-
-
 void MyBMP180::initialize() {
   if (!this->_base.begin()) {
     Serial.println(F("Failed to find BMP180 chip"));
@@ -10,7 +7,6 @@ void MyBMP180::initialize() {
   }
   Serial.println(F("BMP180 Found!"));
 }
-
 
 BMP180Data MyBMP180::readBMP180FromSensor() {
   BMP180Data data;
@@ -21,7 +17,6 @@ BMP180Data MyBMP180::readBMP180FromSensor() {
 
   return data;
 }
-
 
 BMP180Data MyBMP180::readBMP180FromBuffer(uint8_t* buffer) {
   BMP180Data data;
