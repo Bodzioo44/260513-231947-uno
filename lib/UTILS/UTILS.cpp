@@ -80,35 +80,36 @@ ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer) {
   return data;
 }
 
-void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples) {
-  int offset = -10;
-  int total_range = 120;
-  int bottom_range = (180-total_range)/2+offset;
+RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES) {
+  int total_range = RADARANGLE;
+  int bottom_range = (180-total_range)/2+RADAROFFSET;
   int top_range = total_range+bottom_range;
-  int pos = bottom_range;
   int delay_val = 500;
   int pomiar;
 
   int i = 0;
 
+  RadarData data;
+
   servo.write(bottom_range);
 
-  Serial.print("Skan od: "); Serial.println(bottom_range);
-  Serial.print("Skan do: "); Serial.println(top_range);
-  Serial.print("Skan co: "); Serial.println(total_range/samples);
+  // Serial.print("Skan od: "); Serial.println(bottom_range);
+  // Serial.print("Skan do: "); Serial.println(top_range);
+  // Serial.print("Skan co: "); Serial.println(total_range/samples);
+  int skok = RADARANGLE/RADARSAMPLES;
 
-  for (pos = bottom_range; pos <= top_range; pos += total_range/samples) {
-    servo.write(pos); 
+  for (int i = 0; i < RADARSAMPLES; i++) {
+    servo.write(bottom_range+skok*i); 
     delay(delay_val);        
     //Serial.println(pos);      
     pomiar = GetDistance();
-    Serial.print("measurement: "); Serial.print(i); Serial.print(", value: "); Serial.println(pomiar);
-    radar_data[i] = pomiar;
-    i++;
+    if (pomiar < 0 || pomiar > 150) {pomiar = 150;}
+    Serial.print("Pomiar nr: "); Serial.print(i); Serial.print(", odleglosc cm: "); Serial.println(pomiar);
+    data.samples[i] = pomiar;
   }
 
   servo.write(total_range/2+bottom_range);
-
+  return data;
 }
 
 int GetDistance() {
@@ -146,5 +147,16 @@ SpeedData ReadSpeedDataFromBuffer(uint8_t* buffer) {
 }
 
 void LoadBufferWithSpeedData(uint8_t* buffer, SpeedData& data) {
+  memcpy(buffer+3, &data, sizeof(data));
+}
+
+
+RadarData ReadRadarDataFromBuffer(uint8_t* buffer) {
+  RadarData data;
+  memcpy(&data, buffer+3, sizeof(data));
+  return data;
+}
+
+void LoadBufferWithRadardData(uint8_t* buffer, RadarData& data) {
   memcpy(buffer+3, &data, sizeof(data));
 }

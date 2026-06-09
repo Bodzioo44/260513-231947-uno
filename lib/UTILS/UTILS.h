@@ -29,7 +29,7 @@
 #define EchoPin A1
 #define TrigPin A0
 
-#define RADARSAMPLES 20
+
 
 enum class DATA_TYPE : uint8_t {
   BUTTONS_DATA_TX,
@@ -42,6 +42,7 @@ enum class DATA_TYPE : uint8_t {
   QMC5883L_DATA_RX,
   RADAR_DATA_RX,
   SPEEEED_DATA_RX,
+  CALIBRATE_SPEED_RX,
 
   NONE
 };
@@ -69,6 +70,27 @@ struct Header {
 
 Header ReadHeader(uint8_t* buffer);
 void LoadHeader(uint8_t* buffer, Header& header);
+
+//////////////
+// RADAR DATA
+//////////////
+
+#define RADARSAMPLES 28
+#define RADARANGLE 120
+#define RADAROFFSET -10
+
+struct RadarData {
+  uint8_t samples[RADARSAMPLES];
+} __attribute__((packed));
+
+
+RadarData ReadRadarDataFromBuffer(uint8_t* buffer);
+void LoadBufferWithRadardData(uint8_t* buffer, RadarData& data);
+
+RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES);
+int GetDistance();
+
+
 
 ///////////
 // BUTTONS
@@ -122,9 +144,6 @@ void LightLEDs(COLOR LED1, COLOR LED2);
 void DisplayData(uint8_t* buffer);
 
 
-
-void RadarScan(Servo servo, uint8_t* radar_data, uint8_t samples);
-int GetDistance();
 
 
 

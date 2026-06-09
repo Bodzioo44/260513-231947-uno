@@ -105,3 +105,40 @@ void MyDisplay::displaySpeed(SpeedData& data, bool& TX_screen) {
   this->_base.display();
 
 }
+
+// radius in pixels
+#define MAXRADIUS 42
+#define X_ORG 42
+#define Y_ORG 47
+
+void MyDisplay::displayRadar(RadarData& data) {
+  this->_base.clearDisplay();
+  this->_base.drawCircle(X_ORG, Y_ORG, MAXRADIUS, BLACK);
+
+  // int prev_x = -1;
+  // int prev_y = -1;
+
+  // this->_base.fillRect()
+  for (uint8_t i = 0; i < RADARSAMPLES; i++) {
+    float angle = 30 + (i * RADARANGLE / (RADARSAMPLES - 1));
+    float rad = angle * PI / 180.0;
+
+    int scaled_radius = map(data.samples[i], 0, 150, 0, MAXRADIUS);
+    scaled_radius = constrain(scaled_radius, 0, MAXRADIUS);
+
+    int x_point = X_ORG + (scaled_radius * cos(rad));
+    int y_point = Y_ORG - (scaled_radius * sin(rad));
+
+    this->_base.drawLine(X_ORG, Y_ORG, x_point, y_point, BLACK);
+
+    // this->_base.drawPixel(x_point, y_point, BLACK);
+
+  //   if (i > 0) {
+  //     this->_base.drawLine(prev_x, prev_y, x_point, y_point, BLACK);
+  //   }
+  //   prev_x = x_point;
+  //   prev_y = y_point;
+  }
+
+  this->_base.display();
+}

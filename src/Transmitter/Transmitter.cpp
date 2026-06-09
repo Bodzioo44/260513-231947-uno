@@ -28,8 +28,8 @@ uint8_t transmissionID = 0;
 bool BTN_E_Pressed = false;
 bool BTN_F_Pressed = false;
 uint8_t E = 0;
-uint8_t F = 0;
-bool TX_screen = true;
+uint8_t F = 5;
+bool TX_screen = false;
 
 void setup() {
   pinMode(BTN_A, INPUT_PULLUP);
@@ -77,12 +77,12 @@ void setup() {
 }
 
 void loop() {
-  if (WasButtonPressed(BTN_E, BTN_E_Pressed)) {
+  if (WasButtonPressed(BTN_E, BTN_E_Pressed)  && !(F == 5 || F == 6)) {
     E = (E + 1) % 5;
     TX_screen = true;
   }
   if (WasButtonPressed(BTN_F, BTN_F_Pressed)) {
-    F = (F + 1) % 5;
+    F = (F + 1) % 7;
     TX_screen = false;
   }
 
@@ -156,6 +156,18 @@ void loop() {
         if (header.DataType != DATA_TYPE::SPEEEED_DATA_RX) break;
         SpeedData data = ReadSpeedDataFromBuffer(buffer);
         display.displaySpeed(data, TX_screen);
+      }
+      case 5: {
+        header.RequestedData = DATA_TYPE::CALIBRATE_SPEED_RX;
+        if (header.DataType != DATA_TYPE::CALIBRATE_SPEED_RX) break;
+        display.message("BRESS BTN A FOR CALBIRATION, BRESS BTN C FOR RESET");
+        break;
+      }
+      case 6: {
+        header.RequestedData = DATA_TYPE::RADAR_DATA_RX;
+        if (header.DataType != DATA_TYPE::RADAR_DATA_RX) break;
+        RadarData data = ReadRadarDataFromBuffer(buffer);
+        display.displayRadar(data);
       }
       default: 
         break;

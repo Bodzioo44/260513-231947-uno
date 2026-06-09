@@ -26,6 +26,9 @@ class MyDisplay {
         void displayBaro(BMP180Data& data, bool& TX_screen);
         void displayMag(CompassData& data, bool& TX_screen);
         void displaySpeed(SpeedData& data, bool& TX_screen);
+        void displayRadar(RadarData& data);
+        void displayEcho(RadarData& data);
+        // void displaySpeedCalibrate();
 
         void message(const char* msg) {
             this->_base.clearDisplay();

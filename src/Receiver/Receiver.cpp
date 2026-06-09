@@ -28,8 +28,11 @@ RF24 radio(9, 10); // CE, CSN
 uint8_t buffer[32]; 
 const uint8_t addresses[] = { 0xD4, 0xF6 };
 ButtonsData buttons;
+RadarData radar_data;
 
-int reply_data = 0;
+int old_data_ID = 0;
+bool new_data = true;
+
 unsigned long last_radio_response = 0;
 
 unsigned long last_measurement = 0;
@@ -44,7 +47,7 @@ float current_distance = 0;
 float position_x;
 float position_y;
 
-uint8_t radar_data[RADARSAMPLES];
+bool radar_check = true;
 
 void setup() {
   Serial.begin(115200);
@@ -88,30 +91,32 @@ void setup() {
 
   radio.writeAckPayload(1, &buffer, sizeof(buffer));
   
-  // No idea whats happening here, or why its needed
-  LightLEDs(COLOR::OFF, COLOR::OFF);
-  LightLEDs(COLOR::OFF, COLOR::OFF);
-  delay(2500);
+  if (false) {
+    // No idea whats happening here, or why its needed
+    LightLEDs(COLOR::OFF, COLOR::OFF);
+    LightLEDs(COLOR::OFF, COLOR::OFF);
+    delay(2500);
 
-  // calibrate mpu6050 for 10 sec
-  LightLEDs(COLOR::RED, COLOR::RED);
-  mpu.calibrate();
+    // calibrate mpu6050 for 10 sec
+    LightLEDs(COLOR::RED, COLOR::RED);
+    mpu.calibrate();
 
-  // calibrate compass for 10 sec
-  digitalWrite(forward_left, HIGH);
-  digitalWrite(forward_right, LOW);
+    // calibrate compass for 10 sec
+    digitalWrite(forward_left, HIGH);
+    digitalWrite(forward_right, LOW);
 
-  analogWrite(PWM_left, 160);
-  analogWrite(PWM_right, 160);
-  LightLEDs(COLOR::YELLOW, COLOR::YELLOW);
-  compass.calibrate();
+    analogWrite(PWM_left, 160);
+    analogWrite(PWM_right, 160);
+    LightLEDs(COLOR::YELLOW, COLOR::YELLOW);
+    compass.calibrate();
 
-  // acknowledge calibration complete
-  analogWrite(PWM_left, 0);
-  analogWrite(PWM_right, 0);
-  LightLEDs(COLOR::GREEN, COLOR::GREEN);
-  delay(2500);
-  LightLEDs(COLOR::OFF, COLOR::OFF);
+    // acknowledge calibration complete
+    analogWrite(PWM_left, 0);
+    analogWrite(PWM_right, 0);
+    LightLEDs(COLOR::GREEN, COLOR::GREEN);
+    delay(2500);
+    LightLEDs(COLOR::OFF, COLOR::OFF);
+  }
 }
 
 void loop() {
@@ -136,16 +141,16 @@ void loop() {
   last_acceleration = current_acceleration;
   last_velocity = current_velocity;
 
-  Serial.print("Total Distance: "); Serial.println(current_distance);
+  // Serial.print("Total Distance: "); Serial.println(current_distance);
   
 
-  Serial.print(F("Current Accel Y: ")); Serial.println(current_acceleration);
+  // Serial.print(F("Current Accel Y: ")); Serial.println(current_acceleration);
   // Serial.print(F("Current Azimuth: ")); Serial.println(compass.getAzimuth());
-  Serial.print(F("Current Velocity: ")); Serial.println(current_velocity);
+  // Serial.print(F("Current Velocity: ")); Serial.println(current_velocity);
 
-  Serial.print("AZ: "); Serial.println(compass.getAzimuth());
+  // Serial.print("AZ: "); Serial.println(compass.getAzimuth());
   float heading_radians = compass.getAzimuth() * (PI / 180.0f);
-  Serial.print("RAD: "); Serial.println(heading_radians,4);
+  // Serial.print("RAD: "); Serial.println(heading_radians,4);
 
   position_x += temp_distance * sin(heading_radians);
   position_y += temp_distance * cos(heading_radians);
@@ -166,6 +171,12 @@ void loop() {
     if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
       buttons = ReadButtonsDataFromBuffer(buffer);
     }
+
+    if (header.TransmissionID != old_data_ID) {
+      new_data = true;
+    }
+    else {new_data = false;}
+
 
     switch (header.RequestedData) {
       case DATA_TYPE::MPU6050_DATA_RX: {
@@ -197,6 +208,29 @@ void loop() {
           .delta_y = position_y
         };
         LoadBufferWithSpeedData(buffer, data);
+        break;
+      }
+      case DATA_TYPE::CALIBRATE_SPEED_RX: {
+        header.DataType = DATA_TYPE::CALIBRATE_SPEED_RX;
+        if (buttons.ButtonA && new_data) {
+          LightLEDs(COLOR::RED, COLOR::RED);
+          mpu.calibrate();
+          LightLEDs(COLOR::OFF, COLOR::OFF);
+        }
+        else if (buttons.ButtonC && new_data) {
+          current_distance = 0;
+          current_velocity = 0;
+          current_acceleration = 0;
+        }
+        break;
+      }
+      case DATA_TYPE::RADAR_DATA_RX: {
+        if (buttons.ButtonE && new_data) {
+          radar_data = RadarScan(myservo);
+        }
+
+        header.DataType = DATA_TYPE::RADAR_DATA_RX;
+        LoadBufferWithRadardData(buffer, radar_data);
         break;
       }
       default:
