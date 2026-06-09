@@ -95,10 +95,14 @@ bool WasButtonPressed(int Button, bool& wasPressed);
 // SPEEEEED DATA
 /////////////////
 
+// 22 bytes
 struct SpeedData {
   float current_acceleration;
   float current_velocity;
   float current_distance;
+  float heading_radians;
+  float delta_x;
+  float delta_y;
 } __attribute__((packed));
 
 SpeedData ReadSpeedDataFromBuffer(uint8_t* buffer);

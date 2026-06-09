@@ -41,6 +41,9 @@ float last_velocity = 0.0f;
 float current_velocity = 0;
 float current_distance = 0;
 
+float position_x;
+float position_y;
+
 uint8_t radar_data[RADARSAMPLES];
 
 void setup() {
@@ -117,8 +120,9 @@ void loop() {
   float dt = (current_time - last_measurement) / 1000.0f;
   last_measurement = current_time;
 
+  // TODO: play around with the min accel value.
   float current_acceleration = mpu.getAccelY();
-  if (abs(current_acceleration) < 0.1) {
+  if (abs(current_acceleration) < 0.15) {
     current_acceleration = 0;
   }
   // else {
@@ -126,7 +130,8 @@ void loop() {
   // }
 
   current_velocity += ((last_acceleration + current_acceleration) / 2.0f) * dt;
-  current_distance += ((last_velocity + current_velocity) / 2.0f) * dt;
+  float temp_distance = ((last_velocity + current_velocity) / 2.0f) * dt;
+  current_distance += temp_distance;
 
   last_acceleration = current_acceleration;
   last_velocity = current_velocity;
@@ -137,6 +142,13 @@ void loop() {
   Serial.print(F("Current Accel Y: ")); Serial.println(current_acceleration);
   // Serial.print(F("Current Azimuth: ")); Serial.println(compass.getAzimuth());
   Serial.print(F("Current Velocity: ")); Serial.println(current_velocity);
+
+  Serial.print("AZ: "); Serial.println(compass.getAzimuth());
+  float heading_radians = compass.getAzimuth() * (PI / 180.0f);
+  Serial.print("RAD: "); Serial.println(heading_radians,4);
+
+  position_x += temp_distance * sin(heading_radians);
+  position_y += temp_distance * cos(heading_radians);
 
 
   // mpu.print();
@@ -179,7 +191,10 @@ void loop() {
         SpeedData data = {
           .current_acceleration = current_acceleration,
           .current_velocity = current_velocity,
-          .current_distance = current_distance
+          .current_distance = current_distance,
+          .heading_radians = heading_radians,
+          .delta_x = position_x,
+          .delta_y = position_y
         };
         LoadBufferWithSpeedData(buffer, data);
         break;
