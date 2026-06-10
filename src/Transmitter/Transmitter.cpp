@@ -156,6 +156,7 @@ void loop() {
         if (header.DataType != DATA_TYPE::SPEEEED_DATA_RX) break;
         SpeedData data = ReadSpeedDataFromBuffer(buffer);
         display.displaySpeed(data, TX_screen);
+        break;
       }
       case 5: {
         header.RequestedData = DATA_TYPE::CALIBRATE_SPEED_RX;

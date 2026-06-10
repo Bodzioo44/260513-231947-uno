@@ -91,7 +91,7 @@ void setup() {
 
   radio.writeAckPayload(1, &buffer, sizeof(buffer));
   
-  if (false) {
+  if (true) {
     // No idea whats happening here, or why its needed
     LightLEDs(COLOR::OFF, COLOR::OFF);
     LightLEDs(COLOR::OFF, COLOR::OFF);
@@ -120,7 +120,7 @@ void setup() {
 }
 
 void loop() {
-  unsigned long current_time = millis(); // to avoid rollover?
+  unsigned long current_time = millis();
 
   float dt = (current_time - last_measurement) / 1000.0f;
   last_measurement = current_time;
@@ -130,9 +130,7 @@ void loop() {
   if (abs(current_acceleration) < 0.15) {
     current_acceleration = 0;
   }
-  // else {
-  //   Serial.println("WE GOT THEMMMM");
-  // }
+
 
   current_velocity += ((last_acceleration + current_acceleration) / 2.0f) * dt;
   float temp_distance = ((last_velocity + current_velocity) / 2.0f) * dt;
@@ -141,16 +139,7 @@ void loop() {
   last_acceleration = current_acceleration;
   last_velocity = current_velocity;
 
-  // Serial.print("Total Distance: "); Serial.println(current_distance);
-  
-
-  // Serial.print(F("Current Accel Y: ")); Serial.println(current_acceleration);
-  // Serial.print(F("Current Azimuth: ")); Serial.println(compass.getAzimuth());
-  // Serial.print(F("Current Velocity: ")); Serial.println(current_velocity);
-
-  // Serial.print("AZ: "); Serial.println(compass.getAzimuth());
   float heading_radians = compass.getAzimuth() * (PI / 180.0f);
-  // Serial.print("RAD: "); Serial.println(heading_radians,4);
 
   position_x += temp_distance * sin(heading_radians);
   position_y += temp_distance * cos(heading_radians);
@@ -164,19 +153,12 @@ void loop() {
     Serial.println(F("Data received from TX:"));
     DisplayData(buffer);
     last_radio_response = millis();
-  
 
     // TODO: Get rid of the check? kinda useless since we only send buttons to RX
     Header header = ReadHeader(buffer);
     if (header.DataType == DATA_TYPE::BUTTONS_DATA_TX) {
       buttons = ReadButtonsDataFromBuffer(buffer);
     }
-
-    if (header.TransmissionID != old_data_ID) {
-      new_data = true;
-    }
-    else {new_data = false;}
-
 
     switch (header.RequestedData) {
       case DATA_TYPE::MPU6050_DATA_RX: {
@@ -198,6 +180,7 @@ void loop() {
         break;
       }
       case DATA_TYPE::SPEEEED_DATA_RX: {
+        Serial.println("We are inside SPEEED DATA");
         header.DataType = DATA_TYPE::SPEEEED_DATA_RX;
         SpeedData data = {
           .current_acceleration = current_acceleration,
@@ -212,21 +195,25 @@ void loop() {
       }
       case DATA_TYPE::CALIBRATE_SPEED_RX: {
         header.DataType = DATA_TYPE::CALIBRATE_SPEED_RX;
-        if (buttons.ButtonA && new_data) {
+        Serial.println("We are inside CALIBRATE SPEEED DATA");
+        if (buttons.ButtonA) {
           LightLEDs(COLOR::RED, COLOR::RED);
           mpu.calibrate();
           LightLEDs(COLOR::OFF, COLOR::OFF);
+          radio.flush_rx();
         }
-        else if (buttons.ButtonC && new_data) {
+        else if (buttons.ButtonC) {
           current_distance = 0;
           current_velocity = 0;
           current_acceleration = 0;
+          radio.flush_rx();
         }
         break;
       }
       case DATA_TYPE::RADAR_DATA_RX: {
-        if (buttons.ButtonE && new_data) {
+        if (buttons.ButtonE) {
           radar_data = RadarScan(myservo);
+          radio.flush_rx();
         }
 
         header.DataType = DATA_TYPE::RADAR_DATA_RX;
