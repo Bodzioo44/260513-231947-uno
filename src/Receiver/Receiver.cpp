@@ -1,21 +1,4 @@
-#include <Arduino.h>
-
-#include <SPI.h>
-#include <RF24.h>
-#include <Servo.h>
-
-// #include "MPU6050.h"
-#include "MyCompass.h"
-#include "MyMPU6050.h"
-#include "MyBMP180.h"
-
-#include "UTILS.h"
-
-#define PWM_left 5
-#define forward_left 4
-#define PWM_right 3
-#define forward_right 2
-
+#include "Receiver/Receiver.h"
 
 Servo myservo;
 
@@ -287,4 +270,58 @@ void loop() {
 
     LightLEDs(COLOR::RED, COLOR::BLUE);
   }
+}
+
+///////////////////
+// END OF VOID LOOP
+///////////////////
+
+void LightLEDs(COLOR LED1, COLOR LED2) {
+  uint8_t SIPO = 0;
+  SIPO = (SIPO << 3) ^ (uint8_t)LED1;
+  SIPO = (SIPO << 3) ^ (uint8_t)LED2;
+
+  digitalWrite(RCLK, LOW); //lock data
+  shiftOut(SER, SCLK, LSBFIRST, SIPO);
+  digitalWrite(RCLK, HIGH); // push data
+}
+
+RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES) {
+  int total_range = RADARANGLE;
+  int bottom_range = (180-total_range)/2+RADAROFFSET;
+  int top_range = total_range+bottom_range;
+  int delay_val = 500;
+  int pomiar;
+
+  int i = 0;
+
+  RadarData data;
+
+  servo.write(bottom_range);
+  int skok = RADARANGLE/RADARSAMPLES;
+
+  for (int i = 0; i < RADARSAMPLES; i++) {
+    servo.write(bottom_range+skok*i); 
+    delay(delay_val);        
+    pomiar = GetDistance();
+    if (pomiar < 0 || pomiar > 150) {pomiar = 150;}
+    // Serial.print("Pomiar nr: "); Serial.print(i); Serial.print(", odleglosc cm: "); Serial.println(pomiar);
+    data.samples[i] = pomiar;
+  }
+
+  servo.write(total_range/2+bottom_range);
+  return data;
+}
+
+int GetDistance() {
+  digitalWrite(TrigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TrigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TrigPin, LOW);
+
+  int duration = pulseIn(EchoPin, HIGH);
+  int distance = (duration*.0343)/2;
+
+  return distance;
 }

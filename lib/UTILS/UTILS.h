@@ -3,33 +3,6 @@
 
 #include <stdint.h>
 #include <Arduino.h>
-#include <Servo.h>
-
-//////////////////////
-// TRANSMITTER DEFINES
-//////////////////////
-
-#define JOY_X A0
-#define JOY_Y A1
-#define BTN_A 2
-#define BTN_B 3
-#define BTN_C 4
-#define BTN_D 5
-#define BTN_E 6
-#define BTN_F 7
-
-#define SER 6
-#define RCLK 7
-#define SCLK 8
-
-///////////////////
-// RECEIVER DEFINES
-///////////////////
-#define servoPin A2
-#define EchoPin A1
-#define TrigPin A0
-
-
 
 enum class DATA_TYPE : uint8_t {
   BUTTONS_DATA_TX,
@@ -47,26 +20,32 @@ enum class DATA_TYPE : uint8_t {
   NONE
 };
 
-enum class COLOR : uint8_t {
-  RED = 0b110,
-  GREEN = 0b101,
-  BLUE = 0b011,
-  WHITER = 0b000,
-  CYAN = 0b001,
-  MAGENTA = 0b010,
-  YELLOW = 0b100,
-  OFF = 0b111
-};
-
-//////////
-// HEADER
-//////////
-
 struct Header {
   DATA_TYPE DataType; 
   DATA_TYPE RequestedData;
   uint8_t TransmissionID;
 } __attribute__((packed));
+
+template<typename T>
+struct Packet {
+  // DATA_TYPE dataType;
+  // DATA_TYPE requestedData;
+  // uint8_t transmissionID;
+  Header header;
+  T data;
+  uint8_t crc8;
+} __attribute__((packed));
+
+template<typename T> 
+void LoadBufferWithData(uint8_t* buffer, T data);
+template <typename T>
+T ReadDataFromBuffer(uint8_t* buffer);
+
+//////////
+// HEADER
+//////////
+
+
 
 Header ReadHeader(uint8_t* buffer);
 void LoadHeader(uint8_t* buffer, Header& header);
@@ -87,11 +66,6 @@ struct RadarData {
 RadarData ReadRadarDataFromBuffer(uint8_t* buffer);
 void LoadBufferWithRadardData(uint8_t* buffer, RadarData& data);
 
-RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES);
-int GetDistance();
-
-
-
 ///////////
 // BUTTONS
 ///////////
@@ -108,10 +82,8 @@ struct ButtonsData {
   uint16_t joystickY;
 } __attribute__((packed));
 
-ButtonsData ReadButtons();
 ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer);
 void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data);
-bool WasButtonPressed(int Button, bool& wasPressed);
 
 /////////////////
 // SPEEEEED DATA
@@ -136,15 +108,8 @@ void LoadBufferWithSpeedData(uint8_t* buffer, SpeedData& data);
 
 
 int freeRam();
-uint8_t calculate_CRC8(uint8_t* data, int size);
-
-void LightLEDs(COLOR LED1, COLOR LED2);
-
-
 void DisplayData(uint8_t* buffer);
-
-
-
+uint8_t calculate_CRC8(uint8_t* data, int size);
 
 
 #endif // UTILS_H

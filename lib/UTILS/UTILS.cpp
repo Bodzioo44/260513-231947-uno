@@ -21,30 +21,24 @@ uint8_t calculate_CRC8(uint8_t* data, int size) {
       }
     }
   }
-  crc ^= 0x55; // Final XOR FOR REASONS (RIP 30 MINS)
+  crc ^= 0x55; // why
   return crc;
 }
 
-void LightLEDs(COLOR LED1, COLOR LED2) {
-  uint8_t SIPO = 0;
-  SIPO = (SIPO << 3) ^ (uint8_t)LED1;
-  SIPO = (SIPO << 3) ^ (uint8_t)LED2;
+//////////
+// TEST???
+//////////
 
-  digitalWrite(RCLK, LOW); //lock data
-  // Using switches from 2-7, so it has to start with LSB
-  shiftOut(SER, SCLK, LSBFIRST, SIPO);
-  digitalWrite(RCLK, HIGH); // push data
+template<typename T>
+void LoadBufferWithData(uint8_t* buffer, T data) {
+  memcpy(buffer, &data , sizeof(data));
 }
 
-bool WasButtonPressed(int Button, bool& wasPressed) {
-  if (digitalRead(Button) == HIGH && wasPressed) {
-    wasPressed = false;
-    return true;
-  }
-  else if (digitalRead(Button) == LOW) {
-    wasPressed = true;
-  }
-  return false;
+template<typename T>
+T ReadDataFromBuffer(uint8_t* buffer) {
+  T data;
+  memcpy(&data, buffer+3, sizeof(data));
+  return data;
 }
 
 Header ReadHeader(uint8_t* buffer) {
@@ -65,64 +59,12 @@ void LoadBufferWithButtonsData(uint8_t* buffer, ButtonsData& data) {
   memcpy(buffer+3, &data, sizeof(data));
 }
 
-ButtonsData ReadButtons() {
-  ButtonsData data;
-  data.ButtonA = (bool)!digitalRead(BTN_A); data.ButtonB = (bool)!digitalRead(BTN_B);
-  data.ButtonC = (bool)!digitalRead(BTN_C); data.ButtonD = (bool)!digitalRead(BTN_D);
-  data.ButtonE = (bool)!digitalRead(BTN_E); data.ButtonF = (bool)!digitalRead(BTN_F);
-  data.joystickX = analogRead(JOY_X); data.joystickY = analogRead(JOY_Y);
-  return data;
-}
+
 
 ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer) {
   ButtonsData data;
   memcpy(&data, buffer+3, sizeof(data));
   return data;
-}
-
-RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES) {
-  int total_range = RADARANGLE;
-  int bottom_range = (180-total_range)/2+RADAROFFSET;
-  int top_range = total_range+bottom_range;
-  int delay_val = 500;
-  int pomiar;
-
-  int i = 0;
-
-  RadarData data;
-
-  servo.write(bottom_range);
-
-  // Serial.print("Skan od: "); Serial.println(bottom_range);
-  // Serial.print("Skan do: "); Serial.println(top_range);
-  // Serial.print("Skan co: "); Serial.println(total_range/samples);
-  int skok = RADARANGLE/RADARSAMPLES;
-
-  for (int i = 0; i < RADARSAMPLES; i++) {
-    servo.write(bottom_range+skok*i); 
-    delay(delay_val);        
-    //Serial.println(pos);      
-    pomiar = GetDistance();
-    if (pomiar < 0 || pomiar > 150) {pomiar = 150;}
-    Serial.print("Pomiar nr: "); Serial.print(i); Serial.print(", odleglosc cm: "); Serial.println(pomiar);
-    data.samples[i] = pomiar;
-  }
-
-  servo.write(total_range/2+bottom_range);
-  return data;
-}
-
-int GetDistance() {
-  digitalWrite(TrigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TrigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TrigPin, LOW);
-
-  int duration = pulseIn(EchoPin, HIGH);
-  int distance = (duration*.0343)/2;
-
-  return distance;
 }
 
 void DisplayData(uint8_t* buffer) {
@@ -132,11 +74,6 @@ void DisplayData(uint8_t* buffer) {
     Serial.print(", ");
   }
   Serial.println();
-}
-
-int8_t FloatToUint8(float& value) {
-    value *= 10.0f;
-    return (int8_t)value;
 }
 
 

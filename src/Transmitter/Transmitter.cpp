@@ -1,15 +1,6 @@
-#include <Arduino.h>
 
-#include <SPI.h>
-#include <RF24.h>
-#include <Wire.h>
 
-#include "MyCompass.h"
-#include "MyMPU6050.h"
-#include "MyBMP180.h"
-#include "MyDisplay.h"
-
-#include "UTILS.h"
+#include "Transmitter/Transmitter.h"
 
 MyDisplay display;
 
@@ -204,4 +195,28 @@ void loop() {
 
   Serial.print(F("Free RAM: ")); Serial.println(freeRam());
 
+}
+
+///////////////////
+// END OF VOID LOOP
+///////////////////
+
+ButtonsData ReadButtons() {
+  ButtonsData data;
+  data.ButtonA = (bool)!digitalRead(BTN_A); data.ButtonB = (bool)!digitalRead(BTN_B);
+  data.ButtonC = (bool)!digitalRead(BTN_C); data.ButtonD = (bool)!digitalRead(BTN_D);
+  data.ButtonE = (bool)!digitalRead(BTN_E); data.ButtonF = (bool)!digitalRead(BTN_F);
+  data.joystickX = analogRead(JOY_X); data.joystickY = analogRead(JOY_Y);
+  return data;
+}
+
+bool WasButtonPressed(int Button, bool& wasPressed) {
+  if (digitalRead(Button) == HIGH && wasPressed) {
+    wasPressed = false;
+    return true;
+  }
+  else if (digitalRead(Button) == LOW) {
+    wasPressed = true;
+  }
+  return false;
 }
