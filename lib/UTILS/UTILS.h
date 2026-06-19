@@ -43,6 +43,7 @@ enum class DATA_TYPE : uint8_t {
   RADAR_DATA_RX,
   SPEEEED_DATA_RX,
   CALIBRATE_SPEED_RX,
+  CONT_RADAR_DATA_RX,
 
   NONE
 };
@@ -83,12 +84,21 @@ struct RadarData {
   uint8_t samples[RADARSAMPLES];
 } __attribute__((packed));
 
-
 RadarData ReadRadarDataFromBuffer(uint8_t* buffer);
 void LoadBufferWithRadardData(uint8_t* buffer, RadarData& data);
 
 RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES);
 int GetDistance();
+
+int SpecialRadarScan(Servo servo, int angle);
+
+
+// // SPECIAL STUFF
+// struct ContinuousRadarData {
+//   uint8_t samples[28];
+// } __attribute__((packed));
+
+// ContinuousRadarData LoadBufferWithContinuousRadarData(uint8_t)
 
 
 

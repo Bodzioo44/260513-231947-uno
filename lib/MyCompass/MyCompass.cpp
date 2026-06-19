@@ -2,7 +2,7 @@
 
 void MyCompass::initialize() {
     this->init();
-    Serial.println(F("QMC5883L Found!"));
+    // Serial.println(F("QMC5883L Found!"));
 }
 
 void MyCompass::calibrate() {

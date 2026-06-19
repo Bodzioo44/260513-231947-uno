@@ -6,7 +6,7 @@ void MyMPU6050::initialize() {
     Serial.println(F("Failed to find MPU6050 chip"));
     while (1);
   }
-  Serial.println(F("MPU6050 Found!"));
+  // Serial.println(F("MPU6050 Found!"));
 
   this->_base.setI2CBypass(true);
 

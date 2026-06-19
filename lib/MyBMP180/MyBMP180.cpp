@@ -5,7 +5,7 @@ void MyBMP180::initialize() {
     Serial.println(F("Failed to find BMP180 chip"));
     while (1);
   }
-  Serial.println(F("BMP180 Found!"));
+  // Serial.println(F("BMP180 Found!"));
 }
 
 BMP180Data MyBMP180::readBMP180FromSensor() {

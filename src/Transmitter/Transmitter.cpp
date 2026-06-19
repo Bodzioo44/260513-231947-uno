@@ -39,7 +39,8 @@ void setup() {
   pinMode(BTN_E, INPUT_PULLUP);
   pinMode(BTN_F, INPUT_PULLUP);
 
-  Serial.begin(115200);
+  // Serial.begin(115200);
+  Serial.begin(9600);
 
   display.initialize();
 
@@ -82,7 +83,7 @@ void loop() {
     TX_screen = true;
   }
   if (WasButtonPressed(BTN_F, BTN_F_Pressed)) {
-    F = (F + 1) % 7;
+    F = (F + 1) % 8;
     TX_screen = false;
   }
 
@@ -166,9 +167,23 @@ void loop() {
       }
       case 6: {
         header.RequestedData = DATA_TYPE::RADAR_DATA_RX;
-        if (header.DataType != DATA_TYPE::RADAR_DATA_RX) break;
+        if (header.DataType != DATA_TYPE::RADAR_DATA_RX) {break;}
         RadarData data = ReadRadarDataFromBuffer(buffer);
         display.displayRadar(data);
+        break;
+      }
+      case 7: {
+        header.RequestedData = DATA_TYPE::CONT_RADAR_DATA_RX;
+        if (header.DataType != DATA_TYPE::CONT_RADAR_DATA_RX) break;
+        RadarData data = ReadRadarDataFromBuffer(buffer);
+        for (int i = 0; i < 28; i+=2) {
+          Serial.print(data.samples[i]);
+          Serial.print(",");
+          Serial.println(data.samples[i+1]);
+        }
+        display.message("CONT RADAR MODE");
+        delay(15);
+        break;
       }
       default: 
         break;
@@ -181,8 +196,8 @@ void loop() {
   LoadHeader(buffer, header);
   LoadBufferWithButtonsData(buffer, btns_data);
 
-  Serial.print(F("Sending data to RX... With transmission ID:")); Serial.println(transmissionID);
-  DisplayData(buffer);
+  // Serial.print(F("Sending data to RX... With transmission ID:")); Serial.println(transmissionID);
+  // DisplayData(buffer);
   bool success = radio.write(buffer, sizeof(buffer));
 
   // Saves AckPayload into buffer
@@ -191,17 +206,17 @@ void loop() {
     if (radio.isAckPayloadAvailable()) {
       radio.read(&buffer, sizeof(buffer));
       header = ReadHeader(buffer);
-      Serial.println(F("Success! Ack payload received: "));
-      DisplayData(buffer);
+      // Serial.println(F("Success! Ack payload received: "));
+      // DisplayData(buffer);
     }
     else {
-      Serial.println(F("Success, but no ACK payload returned."));
+      // Serial.println(F("Success, but no ACK payload returned."));
     }
   } 
   else {
-    Serial.println(F("Delivery failed (No ACK received at all)."));
+    // Serial.println(F("Delivery failed (No ACK received at all)."));
   }
 
-  Serial.print(F("Free RAM: ")); Serial.println(freeRam());
+  // Serial.print(F("Free RAM: ")); Serial.println(freeRam());
 
 }

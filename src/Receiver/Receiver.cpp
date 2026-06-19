@@ -49,6 +49,10 @@ float position_y;
 
 bool radar_check = true;
 
+int current_angle = 20;
+int current_index = 0;
+int radar_i = 0;
+
 void setup() {
   Serial.begin(115200);
 
@@ -91,7 +95,7 @@ void setup() {
 
   radio.writeAckPayload(1, &buffer, sizeof(buffer));
   
-  if (true) {
+  if (false) {
     // No idea whats happening here, or why its needed
     LightLEDs(COLOR::OFF, COLOR::OFF);
     LightLEDs(COLOR::OFF, COLOR::OFF);
@@ -147,11 +151,13 @@ void loop() {
 
   // mpu.print();
   // delay(50);
+  Serial.println("");
+  Serial.println("");
 
   if (radio.available()) {
     radio.read(&buffer, sizeof(buffer));
-    Serial.println(F("Data received from TX:"));
-    DisplayData(buffer);
+    // Serial.println(F("Data received from TX:"));
+    // DisplayData(buffer);
     last_radio_response = millis();
 
     // TODO: Get rid of the check? kinda useless since we only send buttons to RX
@@ -220,6 +226,30 @@ void loop() {
         LoadBufferWithRadardData(buffer, radar_data);
         break;
       }
+      case DATA_TYPE::CONT_RADAR_DATA_RX: {
+
+        int pomiar = SpecialRadarScan(myservo, current_angle);
+        radar_data.samples[current_index++] = current_angle;
+        radar_data.samples[current_index++] = pomiar;
+
+        if (current_index > 27) current_index = 0;
+
+        if (radar_i <= 140)  {current_angle++;}
+        else if (radar_i <= 281) {current_angle--;}
+        else {radar_i = 0; current_angle = 20;}
+
+        Serial.print("pomiar: "); Serial.println(pomiar);
+        Serial.print("current angle: "); Serial.println(current_angle);
+        Serial.print("radar i: "); Serial.println(radar_i);
+        Serial.print("current index: "); Serial.println(current_index);
+
+        radar_i++;
+        delay(15);
+        
+        header.DataType = DATA_TYPE::CONT_RADAR_DATA_RX;
+        LoadBufferWithRadardData(buffer, radar_data);
+        break;
+      }
       default:
         break;
     }
@@ -228,10 +258,10 @@ void loop() {
     LoadHeader(buffer, header);
     buffer[31] = calculate_CRC8(buffer, sizeof(buffer)-1);
 
-    Serial.println(F("Sending data to TX (by loading AckPayload)..."));
-    DisplayData(buffer);
+    // Serial.println(F("Sending data to TX (by loading AckPayload)..."));
+    // DisplayData(buffer);
     bool test = radio.writeAckPayload(1, &buffer, sizeof(buffer));
-    Serial.println(test);
+    // Serial.println(test);
   }
 
   // Forward

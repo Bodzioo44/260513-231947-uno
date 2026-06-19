@@ -80,6 +80,15 @@ ButtonsData ReadButtonsDataFromBuffer(uint8_t* buffer) {
   return data;
 }
 
+
+int SpecialRadarScan(Servo servo, int angle) {
+  servo.write(angle);
+  int pomiar = GetDistance();
+  if (pomiar < 0 || pomiar > 150) {pomiar = 150;}
+  return pomiar;
+
+}
+
 RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES) {
   int total_range = RADARANGLE;
   int bottom_range = (180-total_range)/2+RADAROFFSET;
