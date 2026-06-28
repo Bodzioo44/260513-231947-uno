@@ -17,7 +17,7 @@
 #define EchoPin A1
 #define TrigPin A0
 
-// shift register pins
+// Shift register pins
 #define SER 6
 #define RCLK 7
 #define SCLK 8
@@ -41,12 +41,30 @@ enum class COLOR : uint8_t {
   OFF = 0b111
 };
 
+
+// TX requests specific portion of the radar? or just let it blast UDP style
+
+class MySonar {
+  public:
+    MySonar() {
+      servo.attach(servoPin);
+      pinMode(TrigPin, OUTPUT);
+      pinMode(EchoPin, INPUT);
+    }
+
+
+  private:
+    bool a;
+    Servo servo;
+    int GetDistance();
+    
+};
+
 void setup();
 void loop();
 
 
 RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES);
-int GetDistance(); 
 void LightLEDs(COLOR LED1, COLOR LED2);
 
 

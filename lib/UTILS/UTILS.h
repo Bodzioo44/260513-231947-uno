@@ -26,20 +26,11 @@ struct Header {
   uint8_t TransmissionID;
 } __attribute__((packed));
 
-template<typename T>
-struct Packet {
-  // DATA_TYPE dataType;
-  // DATA_TYPE requestedData;
-  // uint8_t transmissionID;
-  Header header;
-  T data;
-  uint8_t crc8;
-} __attribute__((packed));
 
 template<typename T> 
-void LoadBufferWithData(uint8_t* buffer, T data);
+inline void LoadBufferWithData(uint8_t* buffer, T data);
 template <typename T>
-T ReadDataFromBuffer(uint8_t* buffer);
+inline T ReadDataFromBuffer(uint8_t* buffer);
 
 //////////
 // HEADER
@@ -47,8 +38,20 @@ T ReadDataFromBuffer(uint8_t* buffer);
 
 
 
-Header ReadHeader(uint8_t* buffer);
-void LoadHeader(uint8_t* buffer, Header& header);
+inline Header ReadHeader(uint8_t* buffer);
+inline void LoadHeader(uint8_t* buffer, Header& header);
+inline void LoadCRC8(uint8_t* buffer_start, uint8_t* buffer);
+
+///////////////
+// SONAR DATA
+///////////////
+
+struct SonarData {
+  uint8_t data_id;
+  uint8_t samples;
+  uint8_t angles[13];
+  uint8_t values[13];
+} __attribute__((packed));
 
 //////////////
 // RADAR DATA

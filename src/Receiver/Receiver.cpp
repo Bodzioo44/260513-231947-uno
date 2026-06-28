@@ -44,9 +44,9 @@ void setup() {
   pinMode(SCLK, OUTPUT);
   pinMode(SER, OUTPUT);
 
-  myservo.attach(servoPin); 
-  pinMode(TrigPin, OUTPUT);
-  pinMode(EchoPin, INPUT);
+  // myservo.attach(servoPin); 
+  // pinMode(TrigPin, OUTPUT);
+  // pinMode(EchoPin, INPUT);
 
   analogWrite(PWM_left, 0);
   analogWrite(PWM_right, 0);
@@ -313,7 +313,7 @@ RadarData RadarScan(Servo servo, uint8_t samples = RADARSAMPLES) {
   return data;
 }
 
-int GetDistance() {
+int MySonar::GetDistance() {
   digitalWrite(TrigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(TrigPin, HIGH);

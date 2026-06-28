@@ -21,7 +21,7 @@ uint8_t calculate_CRC8(uint8_t* data, int size) {
       }
     }
   }
-  crc ^= 0x55; // why
+  crc ^= 0x55;
   return crc;
 }
 
@@ -30,12 +30,12 @@ uint8_t calculate_CRC8(uint8_t* data, int size) {
 //////////
 
 template<typename T>
-void LoadBufferWithData(uint8_t* buffer, T data) {
-  memcpy(buffer, &data , sizeof(data));
+inline void LoadBufferWithData(uint8_t* buffer, T data) {
+  memcpy(buffer+3, &data , sizeof(data));
 }
 
 template<typename T>
-T ReadDataFromBuffer(uint8_t* buffer) {
+inline T ReadDataFromBuffer(uint8_t* buffer) {
   T data;
   memcpy(&data, buffer+3, sizeof(data));
   return data;
@@ -47,11 +47,11 @@ Header ReadHeader(uint8_t* buffer) {
   return header;
 }
 
-void LoadHeader(uint8_t* buffer, Header& header) {
+inline void LoadHeader(uint8_t* buffer, Header& header) {
   memcpy(buffer, &header, sizeof(header));
 }
 
-void LoadCRC8(uint8_t* buffer_start, uint8_t* buffer) {
+inline void LoadCRC8(uint8_t* buffer_start, uint8_t* buffer) {
   *buffer = calculate_CRC8(buffer_start, 31);
 }
 
